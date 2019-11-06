@@ -1,3 +1,17 @@
+//----------------------------------------------------------------------------------//
+//-- hl.h -- v0.01 -- My Single Header Library -- public domain Kim Somfleth 2019 --//
+//----------------------------------------------------------------------------------//
+//-- LICENSE -- See end of file for license information                           --//
+//----------------------------------------------------------------------------------//
+//-- USE                                                                          --//
+//--     Use                                                                      --//
+//--     #define HL_IMPLEMENTATION                                                --//
+//--     in exactly ONE file before inclusion before implementation               --//
+//----------------------------------------------------------------------------------//
+
+#include "common/macros_and_types.h"
+
+/*
 ------------------------------------------------------------------------------
 This software is available under 2 licenses -- choose whichever you prefer 
 ------------------------------------------------------------------------------
@@ -48,3 +62,4 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 For more information, please refer to <https://unlicense.org>
 ------------------------------------------------------------------------------
+*/

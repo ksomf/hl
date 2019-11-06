@@ -1,3 +1,45 @@
+//---------------------------------------------------------//
+//-- LICENSE -- See end of file for license information  --//
+//---------------------------------------------------------//
+
+#if !( defined(__x86_64__) || defined(_M_AMD64) )
+  #error CODEBASE CURRENTLY SUPPORTS ONLY 64 BIT x86
+#endif
+
+#if defined( __clang__ )
+  #define hlCLANG
+#elif defined( _MSC_VER )
+  #define hlMSVC
+#elif defined( __GNUC__ )
+  #define hlGCC
+#endif
+
+#if defined( __cplusplus )
+  #define hlEXTERN extern "C"
+#else
+  #define hlEXTERN extern
+#endif
+
+#if defined( hlSTATIC )
+  #define hlFUN_DEF static
+#else
+  #define hlFUN_DEF hlEXTERN
+#endif
+
+#if !defined( _fltused )
+  #if defined( hlWINDOWS )
+    hlEXTERN int _fltused = 0;
+  #elif defined( hlGCC ) 
+    hlEXTERN int _fltused;
+  #endif
+#endif
+
+#define __hlSTATIC_ASSERT3( expr, msg ) typedef char static_assertion_##msg[(!!( expr ) ) * 2 - 1]
+#define __hlSTATIC_ASSERT2( expr, ln ) __hlSTATIC_ASSERT3( expr, hl_static_insertion_failure_##ln )
+#define __hlSTATIC_ASSERT1( expr, ln ) __hlSTATIC_ASSERT2( expr, ln )
+#define hlSTATIC_ASSERT( expression )  __hlSTATIC_ASSERT1( expression, __LINE__ )
+
+/*
 ------------------------------------------------------------------------------
 This software is available under 2 licenses -- choose whichever you prefer 
 ------------------------------------------------------------------------------
@@ -48,3 +90,4 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 For more information, please refer to <https://unlicense.org>
 ------------------------------------------------------------------------------
+*/
