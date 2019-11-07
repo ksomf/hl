@@ -25,4 +25,4 @@ for f in filter( lambda s: s.startswith(prototype_prefix) and s.endswith('.h'), 
       src_file = src_file[ len(license_notice):-len(license) ]
       output_file.write( src_file )
     else:
-      output_file.write( line )
+      output_file.write( line + '\n' )
