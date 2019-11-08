@@ -4,18 +4,17 @@
 
 #if !defined( _HL_PRINT )
 
-hlFUN_DEF i32 hlPrint( c8 *buffer, i32 buffer_length, c8 *fmt, ... );
+hlFUN_DEF i64 hlPrint( c8 *buffer, u64 buffer_length, c8 *fmt, ... );
 
 #define _HL_PRINT
 #endif 
 
 #if defined( HL_IMPLEMENTATION )
 typedef struct {
-  u64 fmt_length;
   u64 width;
   u64 decimals;
   u64 flags;
-} hlParsed_Print_Format;
+} hl_parsed_print_format;
 typedef enum {
   hlLEFT_JUSTIFY = 1
 , hlLEADING_PLUS = 2
@@ -24,7 +23,30 @@ typedef enum {
 } hlPrint_Parse_Flags;
 
 #include <stdio.h>
-hlFUN_DEF i32 hlPrint( c8 *buffer, i32 buffer_length, c8 *fmt, ... ){
+hlFUN_DEF u64 _hlPrintFormattedString( c8 *buffer, u64 buffer_length, c8 *string, hl_parsed_print_format* fmt ){
+  if( string == 0 ){
+    string = (c8 *)"null";
+  }
+  u64 written_bytes = 0;
+  u64 str_len = hlCStrLen( string );
+  u64 padding_width = fmt->width > str_len ? fmt->width - str_len : 0;
+  if( !(fmt->flags & hlLEFT_JUSTIFY) ){
+    for( u64 pad_byte = 0; pad_byte < padding_width && written_bytes < buffer_length; ++pad_byte, ++written_bytes ){
+      *buffer++ = ' ';
+    }
+  }
+  for( u64 string_byte = 0; string_byte < str_len && written_bytes < buffer_length; ++string_byte, ++written_bytes ){
+    *buffer++ = string[string_byte];
+  }
+  if( fmt->flags & hlLEFT_JUSTIFY ){
+    for( u64 pad_byte = 0; pad_byte < padding_width && written_bytes < buffer_length; ++pad_byte, ++written_bytes ){
+      *buffer++ = ' ';
+    }
+  }
+  return written_bytes;
+}
+
+hlFUN_DEF i64 hlPrint( c8 *buffer, u64 buffer_length, c8 *fmt, ... ){
    hlASSERT( buffer_length != 0 );
    va_list args;
    va_start(args,fmt);
@@ -36,24 +58,24 @@ hlFUN_DEF i32 hlPrint( c8 *buffer, i32 buffer_length, c8 *fmt, ... ){
          fmt += 2;
        }else{
          ++fmt;
-         hlParsed_Print_Format result = {};
+         hl_parsed_print_format print_fmt = {};
          u64 parsed_flags = 0;
          while( !parsed_flags ){
            switch( fmt[0] ){
              case '-':{
-               result.flags |= hlLEFT_JUSTIFY;
+               print_fmt.flags |= hlLEFT_JUSTIFY;
                ++fmt;
              }break;
              case '+':{
-               result.flags |= hlLEADING_PLUS;
+               print_fmt.flags |= hlLEADING_PLUS;
                ++fmt;
              }break;
              case '0':{
-               result.flags |= hlZERO_PADDING;
+               print_fmt.flags |= hlZERO_PADDING;
                ++fmt;
              }break;
              case '#':{
-               result.flags |= hlALTERNATIVE_FORM;
+               print_fmt.flags |= hlALTERNATIVE_FORM;
                ++fmt;
              }
              default:{
@@ -63,11 +85,11 @@ hlFUN_DEF i32 hlPrint( c8 *buffer, i32 buffer_length, c8 *fmt, ... ){
          }
 
          if( fmt[0] == '*' ){
-           result.width = va_arg( args, u32 );
+           print_fmt.width = va_arg( args, u32 );
            ++fmt;
          }else{
            while( fmt[0] >= '0' && fmt[0] <= '9' ){
-             result.width = 10 * result.width + fmt[0] - '0';
+             print_fmt.width = 10 * print_fmt.width + fmt[0] - '0';
              ++fmt;
            }
          }
@@ -75,10 +97,10 @@ hlFUN_DEF i32 hlPrint( c8 *buffer, i32 buffer_length, c8 *fmt, ... ){
          if( fmt[0] == '.' ){
            ++fmt;
            if( fmt[0] == '*' ){
-             result.decimals = va_arg( args, u32 );
+             print_fmt.decimals = va_arg( args, u32 );
            }else{
              while( fmt[0] >= '0' && fmt[0] <= '9' ){
-               result.decimals = 10 * result.decimals + fmt[0] - '0';
+               print_fmt.decimals = 10 * print_fmt.decimals + fmt[0] - '0';
                ++fmt;
              }
            }
@@ -119,13 +141,9 @@ hlFUN_DEF i32 hlPrint( c8 *buffer, i32 buffer_length, c8 *fmt, ... ){
            }break;
            case 's':{
              c8 *str = va_arg( args, c8 * );
-             if( str == 0 ){
-                str = (c8 *)"null";
-             }
+             u64 written_bytes = _hlPrintFormattedString( write_ptr, buffer_length - (write_ptr-buffer), str, &print_fmt );
+             write_ptr += written_bytes;
              ++fmt;
-             while( *str && write_ptr < buffer + buffer_length ){
-               *write_ptr++ = *str++;
-             }
            }
          }
 

@@ -1,17 +1,25 @@
-//----------------------------------------------------------------------------------//
-//-- hl.h -- v0.01 -- My Single Header Library -- public domain Kim Somfleth 2019 --//
-//----------------------------------------------------------------------------------//
-//-- LICENSE -- See end of file for license information                           --//
-//----------------------------------------------------------------------------------//
-//-- USE                                                                          --//
-//--     Use                                                                      --//
-//--     #define HL_IMPLEMENTATION                                                --//
-//--     in exactly ONE file before inclusion before implementation               --//
-//----------------------------------------------------------------------------------//
+//---------------------------------------------------------//
+//-- LICENSE -- See end of file for license information  --//
+//---------------------------------------------------------//
 
-#include "common/macros_and_types.h"
-#include "common/cstring.h"
-#include "common/print.h"
+#if !defined( _HL_CSTRING )
+
+hlFUN_DEF u64 hlCStrLen( c8 * str );
+
+#define _HL_HL_CSTRING
+#endif 
+
+#if defined( HL_IMPLEMENTATION )
+
+hlFUN_DEF u64 hlCStrLen( c8 * str ){
+  u64 result = 0;
+  while( *str++ ){
+    ++result;
+  }
+  return result;
+}
+
+#endif
 
 /*
 ------------------------------------------------------------------------------
