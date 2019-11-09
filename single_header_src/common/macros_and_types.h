@@ -100,6 +100,11 @@
 #define hlR32_MIN             1.17549435E-38f         //-- MINIMUM REAL32                                   --//
 #define hlR32_MAX             3.40282347E+38f         //-- MAXIMUM REAL32                                   --//
 
+#define hlI64_MIN ( -(1l << 63)     )
+#define hlI64_MAX (  (1l << 64) - 1 )
+
+#define hlBITS_IN_BYTE 8
+
 #define hlKILOBYTES( a ) (( 1024LL *              a   ))
 #define hlMEGABYTES( a ) (( 1024LL * hlKILOBYTES( a ) ))
 #define hlGIGABYTES( a ) (( 1024LL * hlMEGABYTES( a ) ))

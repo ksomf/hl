@@ -2,23 +2,12 @@
 //-- LICENSE -- See end of file for license information  --//
 //---------------------------------------------------------//
 
-#if !defined( _HL_CSTRING )
+#if !defined( _HL_INTRIN )
 
-hlFUN_DEF u64 hlCStrLen( c8 * str );
+#define __LZCNT__
+#include <immintrin.h>
 
-#define _HL_CSTRING
-#endif 
-
-#if defined( HL_IMPLEMENTATION )
-
-hlFUN_DEF u64 hlCStrLen( c8 * str ){
-  u64 result = 0;
-  while( *str++ ){
-    ++result;
-  }
-  return result;
-}
-
+#define _HL_INTRIN
 #endif
 
 /*
