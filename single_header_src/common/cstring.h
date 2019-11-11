@@ -4,7 +4,14 @@
 
 #if !defined( _HL_CSTRING )
 
-hlFUN_DEF u64 hlCStrLen( c8 * str );
+hlFUN_DEF u64 hlCStrLen( c8 *str );
+hlFUN_DEF u64 hlCStrEqual( c8 *str1, c8 *str2 ){
+  u64 result = 1;
+  while( result && (*str1 || *str2) ){
+    result = *str1++ == *str2++;
+  }
+  return result;
+}
 
 #define _HL_CSTRING
 #endif 

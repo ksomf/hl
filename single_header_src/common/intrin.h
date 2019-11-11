@@ -4,7 +4,6 @@
 
 #if !defined( _HL_INTRIN )
 
-#define __LZCNT__
 #include <immintrin.h>
 
 #define _HL_INTRIN
