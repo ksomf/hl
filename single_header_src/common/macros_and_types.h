@@ -7,50 +7,50 @@
 #endif
 
 #if defined( __clang__ )
-  #define hlCLANG
+  #define HL_CLANG
 #elif defined( _MSC_VER )
-  #define hlMSVC
+  #define HL_MSVC
 #elif defined( __GNUC__ )
-  #define hlGCC
+  #define HL_GCC
 #endif
 
 #if defined( __cplusplus )
-  #define hlEXTERN extern "C"
+  #define HL_EXTERN extern "C"
 #else
-  #define hlEXTERN extern
+  #define HL_EXTERN extern
 #endif
 
-#if defined( hlSTATIC )
-  #define hlFUN_DEF static
+#if defined( HL_STATIC )
+  #define HL_FUN_DEF static
 #else
-  #define hlFUN_DEF hlEXTERN
+  #define HL_FUN_DEF HL_EXTERN
 #endif
 
 #if !defined( _fltused ) // USE FLOATING POINT 
-  #if defined( hlWINDOWS )
-    hlEXTERN int _fltused = 0;
-  #elif defined( hlGCC ) 
-    hlEXTERN int _fltused;
+  #if defined( HL_WINDOWS )
+    HL_EXTERN int _fltused = 0;
+  #elif defined( HL_GCC ) 
+    HL_EXTERN int _fltused;
   #endif
 #endif
 
-#define __hlSTATIC_ASSERT3( expr, msg ) typedef char static_assertion_##msg[(!!( expr ) ) * 2 - 1]
-#define __hlSTATIC_ASSERT2( expr, ln ) __hlSTATIC_ASSERT3( expr, hl_static_insertion_failure_##ln )
-#define __hlSTATIC_ASSERT1( expr, ln ) __hlSTATIC_ASSERT2( expr, ln )
-#define hlSTATIC_ASSERT( expression )  __hlSTATIC_ASSERT1( expression, __LINE__ )
+#define _HL_STATIC_ASSERT3( expr, msg ) typedef char static_assertion_##msg[(!!( expr ) ) * 2 - 1]
+#define _HL_STATIC_ASSERT2( expr, ln ) _HL_STATIC_ASSERT3( expr, hl_static_insertion_failure_##ln )
+#define _HL_STATIC_ASSERT1( expr, ln ) _HL_STATIC_ASSERT2( expr, ln )
+#define HL_STATIC_ASSERT( expression ) _HL_STATIC_ASSERT1( expression, __LINE__ )
 
-#if defined( hlWINDOWS )
-  #define hlASSERT( exp ) if( !(exp) ){ *(i32 *)0 = 0; }
+#if defined( HL_WINDOWS )
+  #define HL_ASSERT( exp ) if( !(exp) ){ *(i32 *)0 = 0; }
 #else
-  #define hlASSERT( exp ) if( !(exp) ){ *(volatile i32 *)0 = 0; }
+  #define HL_ASSERT( exp ) if( !(exp) ){ *(volatile i32 *)0 = 0; }
 #endif
 
-#define _hlSTR( str ) #str
-#define hlSTR( str ) _hlSTR( str )
+#define _HL_STR( str ) #str
+#define HL_STR( str ) _HL_STR( str )
 
 #include <stdarg.h> // va_arg, ..
 
-#define hlARRAY_COUNT( arr ) sizeof(arr) / sizeof(arr[0])
+#define HL_ARRAY_COUNT( arr ) sizeof(arr) / sizeof(arr[0])
 
 #include <stddef.h> // size_t
 #include <stdint.h> // int8_t, ...
@@ -59,55 +59,63 @@
   typedef int16_t i16;
   typedef int32_t i32;
   typedef int64_t i64;
-  hlSTATIC_ASSERT( sizeof( i8  ) == 1 );
-  hlSTATIC_ASSERT( sizeof( i16 ) == 2 );
-  hlSTATIC_ASSERT( sizeof( i32 ) == 4 );
-  hlSTATIC_ASSERT( sizeof( i64 ) == 8 );
+  HL_STATIC_ASSERT( sizeof( i8  ) == 1 );
+  HL_STATIC_ASSERT( sizeof( i16 ) == 2 );
+  HL_STATIC_ASSERT( sizeof( i32 ) == 4 );
+  HL_STATIC_ASSERT( sizeof( i64 ) == 8 );
 #endif
 #if !defined( u8 )
   typedef uint8_t  u8;
   typedef uint16_t u16;
   typedef uint32_t u32;
   typedef uint64_t u64;
-  hlSTATIC_ASSERT( sizeof( u8  ) == 1 );
-  hlSTATIC_ASSERT( sizeof( u16 ) == 2 );
-  hlSTATIC_ASSERT( sizeof( u32 ) == 4 );
-  hlSTATIC_ASSERT( sizeof( u64 ) == 8 );
+  HL_STATIC_ASSERT( sizeof( u8  ) == 1 );
+  HL_STATIC_ASSERT( sizeof( u16 ) == 2 );
+  HL_STATIC_ASSERT( sizeof( u32 ) == 4 );
+  HL_STATIC_ASSERT( sizeof( u64 ) == 8 );
 #endif
 #if !defined( c8 )
   typedef char c8;
-  hlSTATIC_ASSERT( sizeof( c8 ) == 1 );
+  HL_STATIC_ASSERT( sizeof( c8 ) == 1 );
 #endif
 #if !defined( r32 )
   typedef float r32;
-  hlSTATIC_ASSERT( sizeof( r32 ) == 4 );
+  HL_STATIC_ASSERT( sizeof( r32 ) == 4 );
 #endif
 #if !defined( r64 )
   typedef double r64;
-  hlSTATIC_ASSERT( sizeof( r64 ) == 8 );
+  HL_STATIC_ASSERT( sizeof( r64 ) == 8 );
+#endif
+#if !defined( bool )
+  typedef _Bool bool;
+  #define true 1
+  #define false 0
+  #if !defined( b )
+    typedef bool b;
+  #endif
 #endif
 
-#define hlR64_DIGIT_PRECISION 15                      //-- NUMBER OF DIGITS IN PRECISION --//
-#define hlR64_DIGIT_MANTISSA  53                      //-- NUMBER OF DIGITS IN MANTISSA  --//
-#define hlR64_EPSILON         2.2204460492503131E-16  //-- 1.0 + REAL64_EPSILON != 1.0   --//
-#define hlR64_MIN             2.2250738585072014E-308 //-- MINIMUM REAL64                --//
-#define hlR64_MAX             1.7976931348623157E+308 //-- MAXIMUM REAL64                --//
+#define HL_R64_DIGIT_PRECISION 15                      //-- NUMBER OF DIGITS IN PRECISION --//
+#define HL_R64_DIGIT_MANTISSA  53                      //-- NUMBER OF DIGITS IN MANTISSA  --//
+#define HL_R64_EPSILON         2.2204460492503131E-16  //-- 1.0 + REAL64_EPSILON != 1.0   --//
+#define HL_R64_MIN             2.2250738585072014E-308 //-- MINIMUM REAL64                --//
+#define HL_R64_MAX             1.7976931348623157E+308 //-- MAXIMUM REAL64                --//
 
-#define hlR32_LARGEST_ODD     16777215                //-- POINT AT WHICH (u)int32 MORE PRECISE THAN real32 --//
-#define hlR32_DIGIT_PRECISION 6                       //-- NUMBER OF DIGITS IN PRECISION                    --//
-#define hlR32_DIGIT_MANTISSA  24                      //-- NUMBER OF DIGITS IN MANTISSA                     --//
-#define hlR32_EPSILON         1.19209290E-07f         //-- 1.0 + REAL32_EPSILON != 1.0                      --//
-#define hlR32_MIN             1.17549435E-38f         //-- MINIMUM REAL32                                   --//
-#define hlR32_MAX             3.40282347E+38f         //-- MAXIMUM REAL32                                   --//
+#define HL_R32_LARGEST_ODD     16777215                //-- POINT AT WHICH (u)int32 MORE PRECISE THAN real32 --//
+#define HL_R32_DIGIT_PRECISION 6                       //-- NUMBER OF DIGITS IN PRECISION                    --//
+#define HL_R32_DIGIT_MANTISSA  24                      //-- NUMBER OF DIGITS IN MANTISSA                     --//
+#define HL_R32_EPSILON         1.19209290E-07f         //-- 1.0 + REAL32_EPSILON != 1.0                      --//
+#define HL_R32_MIN             1.17549435E-38f         //-- MINIMUM REAL32                                   --//
+#define HL_R32_MAX             3.40282347E+38f         //-- MAXIMUM REAL32                                   --//
 
-#define hlI64_MIN ( -(1l << 63)     )
-#define hlI64_MAX (  (1l << 64) - 1 )
+#define HL_I64_MIN ( -(1l << 63)     )
+#define HL_I64_MAX (  (1l << 64) - 1 )
 
-#define hlBITS_IN_BYTE 8
+#define HL_BITS_IN_BYTE 8
 
-#define hlKILOBYTES( a ) (( 1024LL *              a   ))
-#define hlMEGABYTES( a ) (( 1024LL * hlKILOBYTES( a ) ))
-#define hlGIGABYTES( a ) (( 1024LL * hlMEGABYTES( a ) ))
+#define HL_KILOBYTES( a ) (( 1024LL *              a   ))
+#define HL_MEGABYTES( a ) (( 1024LL * HL_KILOBYTES( a ) ))
+#define HL_GIGABYTES( a ) (( 1024LL * HL_MEGABYTES( a ) ))
 
 /*
 ------------------------------------------------------------------------------

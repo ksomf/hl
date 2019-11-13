@@ -4,24 +4,26 @@
 
 #if !defined( _HL_CSTRING )
 
-hlFUN_DEF u64 hlCStrLen( c8 *str );
-hlFUN_DEF u64 hlCStrEqual( c8 *str1, c8 *str2 ){
-  u64 result = 1;
-  while( result && (*str1 || *str2) ){
-    result = *str1++ == *str2++;
-  }
-  return result;
-}
+HL_FUN_DEF u64 hl_cstr_len( c8 *str );
+HL_FUN_DEF u64 hl_cstr_equ( c8 *str1, c8 *str2 );
 
 #define _HL_CSTRING
 #endif 
 
 #if defined( HL_IMPLEMENTATION )
 
-hlFUN_DEF u64 hlCStrLen( c8 * str ){
+HL_FUN_DEF u64 hl_cstr_len( c8 * str ){
   u64 result = 0;
   while( *str++ ){
     ++result;
+  }
+  return result;
+}
+
+HL_FUN_DEF u64 hl_cstr_equ( c8 *str1, c8 *str2 ){
+  u64 result = 1;
+  while( result && (*str1 || *str2) ){
+    result = *str1++ == *str2++;
   }
   return result;
 }

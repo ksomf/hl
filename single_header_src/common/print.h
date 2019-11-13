@@ -4,8 +4,19 @@
 
 #if !defined( _HL_PRINT )
 
-hlFUN_DEF i64 hlPrint ( c8 *buffer, u64 buffer_length, c8 *fmt, ...           );
-hlFUN_DEF i64 hlVPrint( c8 *buffer, u64 buffer_length, c8 *fmt, va_list vargs );
+HL_FUN_DEF i64 hl_snprintf(  c8 *buffer, u64 buffer_length, c8 *fmt, ...           );
+HL_FUN_DEF i64 hl_vsnprintf( c8 *buffer, u64 buffer_length, c8 *fmt, va_list vargs );
+
+typedef enum {
+  HL_REAL_FIXED
+, HL_REAL_SCIENTIFIC
+, HL_REAL_SHORTEST
+} hl_print_real_types;
+
+HL_FUN_DEF c8 *hl_u64_to_chars(     c8 *buffer_start, c8 *buffer_end, u64 number );
+HL_FUN_DEF c8 *hl_u64_to_chars_hex( c8 *buffer_start, c8 *buffer_end, u64 number, b use_upper_hex );
+HL_FUN_DEF c8 *hl_i64_to_chars(     c8 *buffer_start, c8 *buffer_end, i64 number );
+HL_FUN_DEF c8 *hl_r64_to_chars(     c8 *buffer_start, c8 *buffer_end, r64 number, hl_print_real_types real_format, b use_upper_case );
 
 #define _HL_PRINT
 #endif 
@@ -19,88 +30,209 @@ typedef struct {
 } hl_parsed_print_format;
 
 typedef enum {
-  hlLEFT_JUSTIFY     = 1
-, hlLEADING_PLUS     = 2
-, hlLEADING_SPACE    = 4
-, hlZERO_PADDING     = 8
-, hlALTERNATIVE_FORM = 16
-, hl32BYTE           = 32
-, hlNEGATIVE         = 64
-, hlUPPER_CASE       = 128
-} hlPrint_Parse_Flags;
+  HL_LEFT_JUSTIFY     = 1
+, HL_LEADING_PLUS     = 2
+, HL_LEADING_SPACE    = 4
+, HL_ZERO_PADDING     = 8
+, HL_ALTERNATIVE_FORM = 16
+, HL_32BYTE           = 32
+} hl_print_parse_flags;
 
-#include <stdio.h>
-#define hlPRINT_NUMBER_BUFFER_SIZE 512
-#define hlPRINT_MAX_I8_SIZE   4
-#define hlPRINT_MAX_I16_SIZE  6
-#define hlPRINT_MAX_I32_SIZE 10
-#define hlPRINT_MAX_I64_SIZE 20
-hlFUN_DEF u64 _hlPrintFormattedHex ( c8 *buffer, u64 buffer_length, u64 abs_integer, hl_parsed_print_format *fmt ){
-  hlASSERT( buffer_length );
-  u64 written_bytes  = 0;
 
+HL_FUN_DEF c8 *hl_u64_to_chars( c8 *buffer_start, c8 *buffer_end, u64 number ){
+  c8 *buffer_position = 0;
+  u64 base2_digits  = sizeof(u64)*HL_BITS_IN_BYTE - __builtin_clzll( number );
+  u64 base10_digits = (( base2_digits + 1 ) * 1233 >> 12) + 1; //1233 >> 12 is approximately log2(10)^-1
+
+  if( base10_digits < buffer_end - buffer_start ){
+    buffer_position = buffer_start + base10_digits;
+    for( c8 *write_ptr = buffer_position - 1; write_ptr >= buffer_start; --write_ptr ){
+      *write_ptr = (number % 10) + '0';
+      number /= 10;
+    }
+  }
+  return buffer_position;
+}
+
+HL_FUN_DEF c8 *hl_i64_to_chars( c8 *buffer_start, c8 *buffer_end, i64 number ){
+  HL_ASSERT( buffer_start != buffer_end );
+  if( number < 0 ){
+    *buffer_start++ = '-';
+    number = -number;
+  }
+  c8 *buffer_position = hl_u64_to_chars( buffer_start, buffer_end, (u64)number );
+  return buffer_position;
+}
+
+HL_FUN_DEF c8 *hl_u64_to_hex( c8 *buffer_start, c8 *buffer_end, u64 number, b use_upper_hex ){
+  c8 *buffer_position = 0;
   c8 lower_hex[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'x' };
   c8 upper_hex[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'X' };
-  hlASSERT( hlARRAY_COUNT( lower_hex ) == hlARRAY_COUNT( upper_hex ) ); //TODO MAKE STATIC
-  c8 *hex_code = fmt->flags & hlUPPER_CASE ? upper_hex : lower_hex;
+  HL_ASSERT( HL_ARRAY_COUNT( lower_hex ) == HL_ARRAY_COUNT( upper_hex ) ); //TODO MAKE STATIC
+  c8 *hex_code = use_upper_hex ? upper_hex : lower_hex;
+  
+  u64 base2_digits  = sizeof(u64)*HL_BITS_IN_BYTE - __builtin_clzll( number ); //_lzcnt_u64( abs_integer );
+  u64 base16_digits = (base2_digits+3) / 4;
 
-  if( fmt->flags & hlALTERNATIVE_FORM ){
-    hlASSERT( buffer_length - written_bytes >= 2 );
-    *buffer++ = '0';
-    *buffer++ = hex_code[hlARRAY_COUNT(lower_hex)-1];
-    written_bytes += 2;
+  if( base16_digits < buffer_end - buffer_start ){
+    buffer_position = buffer_start + base16_digits;
+    for( c8 *write_ptr = buffer_position - 1; write_ptr >= buffer_start; --write_ptr ){
+      *write_ptr = hex_code[number % 16];
+      number /= 16;
+    }
   }
-  u64 log2_digits  = sizeof(u64)*hlBITS_IN_BYTE - __builtin_clzll( abs_integer ); //_lzcnt_u64( abs_integer );
-  u64 log16_digits = (log2_digits+3) / 4;
-  hlASSERT( log16_digits < buffer_length - written_bytes );
-  for( u64 hex_byte = log16_digits; hex_byte; --hex_byte ){
-    c8 digit    = hex_code[ abs_integer % 16 ];
-    abs_integer /= 16;
-    buffer[ hex_byte - 1 ] = digit;
-  }
-  written_bytes += log16_digits;
-  return written_bytes;
+  return buffer_position;
 }
 
-hlFUN_DEF u64 _hlPrintFormattedInteger( c8 *buffer, u64 buffer_length, u64 abs_integer, hl_parsed_print_format *fmt ){
-  hlASSERT( buffer_length );
-  u64 written_bytes  = 0;
-  u64 log2_digits    = sizeof(u64)*hlBITS_IN_BYTE - __builtin_clzll( abs_integer ); //_lzcnt_u64( abs_integer );
-  u64 log10_digits   = (( log2_digits + 1 ) * 1233 >> 12) + 1; //1233 >> 12  is approximately log2(10)^-1
-  u64 padding_width = fmt->width > log10_digits ? fmt->width - log10_digits : 0;
-  c8  padding_char  = fmt->flags & hlZERO_PADDING ? '0' : ' ';
-  if( fmt->flags & hlNEGATIVE ){
-    *buffer++ = '-';
-    --buffer_length;
-  }else if( fmt->flags & hlLEADING_PLUS ){
-    *buffer++ = '+';
-    --buffer_length;
-  }else if( fmt->flags & hlLEADING_SPACE ){
-    *buffer++ = ' ';
-    --buffer_length;
+      
+#include <stdio.h>
+typedef union {
+  r64 real;
+  struct {
+    u64 mantissa : 52;
+    u64 exponent : 11;
+    u64 sign : 1;
+  } real_bits;
+  u64 raw_bits;
+} hl_ieee754_r64_representation;
+
+HL_FUN_DEF c8 *hl_r64_to_chars( c8 *buffer_start, c8 *buffer_end, r64 number, hl_print_real_types real_format, b use_upper_case ){
+  c8 *buffer_position = 0;
+
+  hl_ieee754_r64_representation r64_representation = {};
+                                r64_representation.real = number;
+  b   sign     = r64_representation.real_bits.sign;
+  u64 exponent = r64_representation.real_bits.exponent;
+  u64 mantissa = r64_representation.real_bits.mantissa;
+
+  if( exponent == 0 ){
+    if( mantissa == 0 ){
+      // +0, or -0
+    }else{
+      // subnormal real
+    }
+  }else if( exponent == 2 << 12 - 1 ){
+    if( mantissa == 0 ){
+      // +inf, -inf
+    }else{
+      // NaN
+    }
+  }else{
+    // normal real
   }
-  for( u64 pad_byte = 0; pad_byte< padding_width && written_bytes < buffer_length; ++pad_byte, ++written_bytes ){
-    *buffer++ = padding_char;
-  }
-  hlASSERT( log10_digits < buffer_length - written_bytes ); //TODO FIX THIS CASE? OR SHOULD IT BE LEFT AS IS FOR EASY FAIL 
-  for( u64 integer_byte = log10_digits; integer_byte; --integer_byte ){ 
-    c8 digit = abs_integer % 10 + '0';
-    abs_integer /= 10;
-    buffer[ integer_byte - 1 ] = digit;
-  }
-  written_bytes += log10_digits;
-  buffer        += log10_digits;
-  return written_bytes;
+
+  buffer_position = buffer_start;
+  return buffer_position;
 }
 
-hlFUN_DEF u64 _hlPrintFormattedString( c8 *buffer, u64 buffer_length, c8 *string, hl_parsed_print_format* fmt ){
+HL_FUN_DEF c8 *hl_formatted_input_to_chars( c8 *buffer_start, c8 *buffer_end, c8 num_type, hl_parsed_print_format *fmt, va_list vargs ){
+  HL_ASSERT( buffer_start != buffer_end );
+  c8 scratch[512]; //CARRIES ANY 64 BIT OR LOWER STR FORMAT OF A NUMBER
+  c8 lead[8] = {};
+
+  c8 *buffer_position = buffer_start;
+  
+  b negative = false;
+  c8 *scratch_start = scratch;
+  c8 *scratch_end = scratch_start + HL_ARRAY_COUNT( scratch );
+  switch( num_type ){
+    case 'c':{
+      c8 c = (c8)va_arg( vargs, i32 );
+      scratch[0] = c;
+      scratch_end = scratch_start + 1;
+    }break;
+
+    case 's':{
+      scratch_start = va_arg( vargs, c8 * );
+      scratch_end   = scratch_start + hl_cstr_len( scratch_start );
+    }break;
+
+    case 'u':{
+      u64 number = fmt->flags & HL_32BYTE ? va_arg( vargs, u32 ) : va_arg( vargs, u64 );
+      scratch_end = hl_u64_to_chars( scratch_start, scratch_end, number );
+    }break;
+
+    case 'X':
+    case 'x':{
+      u64 number = fmt->flags & HL_32BYTE ? va_arg( vargs, u32 ) : va_arg( vargs, u64 );
+      scratch_end = hl_u64_to_hex ( scratch_start, scratch_end, number, num_type == 'X' );
+      if( fmt->flags & HL_ALTERNATIVE_FORM ){
+        lead[0] = '0';
+        lead[1] = num_type;
+      }
+    }break;
+
+    case 'i':
+    case 'd':{
+      i64 number = fmt->flags & HL_32BYTE ? va_arg( vargs, i32 ) : va_arg( vargs, i64 );
+      scratch_end = hl_i64_to_chars( scratch_start, scratch_end, number );
+      negative = number < 0;
+    }break;
+
+    case 'f':
+    case 'F':{
+      r64 number = va_arg( vargs, r64 ); 
+      scratch_end = hl_r64_to_chars( scratch_start, scratch_end, number, HL_REAL_FIXED     , num_type == 'F' );
+    }break;
+    case 'e':
+    case 'E':{
+      r64 number = va_arg( vargs, r64 ); 
+      scratch_end = hl_r64_to_chars( scratch_start, scratch_end, number, HL_REAL_SCIENTIFIC, num_type == 'E' );
+    }break;
+    case 'g':
+    case 'G':{
+      r64 number = va_arg( vargs, r64 ); 
+      scratch_end = hl_r64_to_chars( scratch_start, scratch_end, number, HL_REAL_SHORTEST  , num_type == 'G' );
+    }break;
+  }
+  u64 scratch_length  = scratch_end - scratch_start;
+
+  if( negative ){
+    *buffer_position++ = '-';
+  }else if( fmt->flags & HL_LEADING_PLUS ){
+    *buffer_position++ = '+';
+  }else if( fmt->flags & HL_LEADING_SPACE ){
+    *buffer_position++ = ' ';
+  }
+
+  u64 padding_bytes = fmt->width > scratch_length ? fmt->width - scratch_length : 0;
+  if( !(fmt->flags & HL_LEFT_JUSTIFY) ){
+    c8 padding_char   = fmt->flags & HL_ZERO_PADDING ? '0' : ' ';
+    HL_ASSERT( padding_bytes < buffer_end - buffer_position );
+    for( u64 padding_index = 0; padding_index < padding_bytes; ++padding_index ){
+      *buffer_position++ = padding_char;
+    }
+  }
+
+  HL_ASSERT( hl_cstr_len( lead ) < buffer_end - buffer_position );
+  for( c8 *lead_position = lead; *lead_position; ++lead_position ){
+    *buffer_position++ = *lead_position;
+  }
+  
+  if( fmt->flags & HL_LEFT_JUSTIFY ){
+    c8 padding_char   = fmt->flags & HL_ZERO_PADDING ? '0' : ' ';
+    HL_ASSERT( padding_bytes < buffer_end - buffer_position );
+    for( u64 padding_index = 0; padding_index < padding_bytes; ++padding_index ){
+      *buffer_position++ = padding_char;
+    }
+  }
+
+
+  HL_ASSERT( scratch_length < buffer_end - buffer_position );
+  for( c8 *scratch_position = scratch_start; scratch_position < scratch_end; ++scratch_position ){
+    *buffer_position++ = *scratch_position;
+  }
+
+  return buffer_position;
+}
+HL_FUN_DEF u64 _hl_printFormattedString( c8 *buffer, u64 buffer_length, c8 *string, hl_parsed_print_format* fmt ){
   if( string == 0 ){
     string = (c8 *)"null";
   }
   u64 written_bytes = 0;
-  u64 str_len = hlCStrLen( string );
+  u64 str_len = hl_cstr_len( string );
   u64 padding_width = fmt->width > str_len ? fmt->width - str_len : 0;
-  if( !(fmt->flags & hlLEFT_JUSTIFY) ){
+  if( !(fmt->flags & HL_LEFT_JUSTIFY) ){
     for( u64 pad_byte = 0; pad_byte < padding_width && written_bytes < buffer_length; ++pad_byte, ++written_bytes ){
       *buffer++ = ' ';
     }
@@ -108,7 +240,7 @@ hlFUN_DEF u64 _hlPrintFormattedString( c8 *buffer, u64 buffer_length, c8 *string
   for( u64 string_byte = 0; string_byte < str_len && written_bytes < buffer_length; ++string_byte, ++written_bytes ){
     *buffer++ = string[string_byte];
   }
-  if( fmt->flags & hlLEFT_JUSTIFY ){
+  if( fmt->flags & HL_LEFT_JUSTIFY ){
     for( u64 pad_byte = 0; pad_byte < padding_width && written_bytes < buffer_length; ++pad_byte, ++written_bytes ){
       *buffer++ = ' ';
     }
@@ -116,16 +248,16 @@ hlFUN_DEF u64 _hlPrintFormattedString( c8 *buffer, u64 buffer_length, c8 *string
   return written_bytes;
 }
 
-hlFUN_DEF i64 hlPrint( c8 *buffer, u64 buffer_length, c8 *fmt, ... ){
+HL_FUN_DEF i64 hl_snprintf( c8 *buffer, u64 buffer_length, c8 *fmt, ... ){
   va_list vargs;
   va_start(vargs,fmt);
-  i64 result = hlVPrint( buffer, buffer_length, fmt, vargs );
+  i64 result = hl_vsnprintf( buffer, buffer_length, fmt, vargs );
   va_end(vargs);
   return result;
 }
 
-hlFUN_DEF i64 hlVPrint( c8 *buffer, u64 buffer_length, c8 *fmt, va_list vargs ){
-  hlASSERT( buffer_length != 0 );
+HL_FUN_DEF i64 hl_vsnprintf( c8 *buffer, u64 buffer_length, c8 *fmt, va_list vargs ){
+  HL_ASSERT( buffer_length != 0 );
   c8 *write_ptr = buffer;
   while( fmt[0] && write_ptr < buffer + buffer_length ){
     if( fmt[0] == '%' ){
@@ -139,24 +271,25 @@ hlFUN_DEF i64 hlVPrint( c8 *buffer, u64 buffer_length, c8 *fmt, va_list vargs ){
         while( !parsed_flags ){
           switch( fmt[0] ){
             case '-':{
-              print_fmt.flags |= hlLEFT_JUSTIFY;
+              print_fmt.flags |= HL_LEFT_JUSTIFY;
               ++fmt;
             }break;
             case '+':{
-              print_fmt.flags |= hlLEADING_PLUS;
+              print_fmt.flags |= HL_LEADING_PLUS;
               ++fmt;
             }break;
             case '0':{
-              print_fmt.flags |= hlZERO_PADDING;
+              print_fmt.flags |= HL_ZERO_PADDING;
               ++fmt;
             }break;
             case '#':{
-              print_fmt.flags |= hlALTERNATIVE_FORM;
+              print_fmt.flags |= HL_ALTERNATIVE_FORM;
               ++fmt;
-            }
+            }break;
             case ' ':{
-              print_fmt.flags |= hlLEADING_SPACE;
-            }
+              print_fmt.flags |= HL_LEADING_SPACE;
+              ++fmt;
+            }break;
             default:{
               parsed_flags = 1;
             }
@@ -187,7 +320,7 @@ hlFUN_DEF i64 hlVPrint( c8 *buffer, u64 buffer_length, c8 *fmt, va_list vargs ){
 
         switch( fmt[0] ){
           case 'h':{
-            print_fmt.flags |= hl32BYTE;
+            print_fmt.flags |= HL_32BYTE;
             ++fmt;
             if( fmt[0] == 'h' ){
               ++fmt;
@@ -213,52 +346,9 @@ hlFUN_DEF i64 hlVPrint( c8 *buffer, u64 buffer_length, c8 *fmt, va_list vargs ){
           }break;
         }
 
-        switch( fmt[0] ){
-          case 'c':{
-            c8 c = (c8)va_arg( vargs, i32 );
-            *write_ptr++ = c;
-            ++fmt;
-          }break;
-          case 's':{
-            c8 *str = va_arg( vargs, c8 * );
-            u64 written_bytes = _hlPrintFormattedString( write_ptr, buffer_length - (write_ptr-buffer), str, &print_fmt );
-            write_ptr += written_bytes;
-            ++fmt;
-          }break;
-          case 'u':
-          case 'i':
-          case 'd': {
-            i64 integer;
-            if( print_fmt.flags & hl32BYTE ){
-              integer = va_arg( vargs, i32 );
-            }else{
-              integer = va_arg( vargs, i64 );
-            }
-            u64 abs_integer = (u64)integer;
-            if( fmt[0] != 'u' && integer < 0 ){
-              abs_integer = (u64)-integer;
-              print_fmt.flags |= hlNEGATIVE;
-            }
-            u64 written_bytes = _hlPrintFormattedInteger( write_ptr, buffer_length - (write_ptr-buffer), abs_integer, &print_fmt );
-            write_ptr += written_bytes;
-            ++fmt;
-          }break;
-          case 'X':
-            print_fmt.flags |= hlUPPER_CASE;
-          case 'x':{
-            u64 abs_integer;
-            if( print_fmt.flags & hl32BYTE ){
-              abs_integer = va_arg( vargs, i32 );
-            }else{
-              abs_integer = va_arg( vargs, i64 );
-            }
-            u64 written_bytes = _hlPrintFormattedHex( write_ptr, buffer_length - (write_ptr-buffer), abs_integer, &print_fmt );
-            write_ptr += written_bytes;
-            ++fmt;
-          }break;
-        }
-
-
+  
+        write_ptr = hl_formatted_input_to_chars( write_ptr, buffer+buffer_length-1, fmt[0], &print_fmt, vargs );
+        ++fmt;
       }
     }else{
       *write_ptr++ = *fmt++;
