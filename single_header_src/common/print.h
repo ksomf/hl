@@ -13,6 +13,7 @@ typedef enum {
 , HL_REAL_SHORTEST
 } hl_print_real_types;
 
+HL_FUN_DEF c8 *hl_c8ptr_to_chars(   c8 *buffer_start, c8 *buffer_end, c8 *cstr );
 HL_FUN_DEF c8 *hl_u64_to_chars(     c8 *buffer_start, c8 *buffer_end, u64 number );
 HL_FUN_DEF c8 *hl_u64_to_chars_hex( c8 *buffer_start, c8 *buffer_end, u64 number, b use_upper_hex );
 HL_FUN_DEF c8 *hl_i64_to_chars(     c8 *buffer_start, c8 *buffer_end, i64 number );
@@ -38,6 +39,14 @@ typedef enum {
 , HL_32BYTE           = 32
 } hl_print_parse_flags;
 
+HL_FUN_DEF c8 *hl_c8ptr_to_chars( c8 *buffer_start, c8 *buffer_end, c8 *cstr ){
+  u64 str_len = hl_cstr_len( cstr );
+  HL_ASSERT( str_len < buffer_end - buffer_start  );
+  for( u64 buffer_index = 0; buffer_index < str_len; ++buffer_index ){
+     buffer_start[buffer_index] = cstr[buffer_index];
+  }
+  return buffer_start + str_len;
+}
 
 HL_FUN_DEF c8 *hl_u64_to_chars( c8 *buffer_start, c8 *buffer_end, u64 number ){
   c8 *buffer_position = 0;
@@ -84,8 +93,6 @@ HL_FUN_DEF c8 *hl_u64_to_hex( c8 *buffer_start, c8 *buffer_end, u64 number, b us
   return buffer_position;
 }
 
-      
-#include <stdio.h>
 typedef union {
   r64 real;
   struct {
@@ -97,31 +104,37 @@ typedef union {
 } hl_ieee754_r64_representation;
 
 HL_FUN_DEF c8 *hl_r64_to_chars( c8 *buffer_start, c8 *buffer_end, r64 number, hl_print_real_types real_format, b use_upper_case ){
-  c8 *buffer_position = 0;
+  u64 maxed_11_bit_number = (2 << 12) - 1;
+  u64 bias = 1023;
 
   hl_ieee754_r64_representation r64_representation = {};
                                 r64_representation.real = number;
-  b   sign     = r64_representation.real_bits.sign;
+  b   negative = r64_representation.real_bits.sign;
   u64 exponent = r64_representation.real_bits.exponent;
   u64 mantissa = r64_representation.real_bits.mantissa;
 
-  if( exponent == 0 ){
-    if( mantissa == 0 ){
-      // +0, or -0
-    }else{
-      // subnormal real
+  c8 *buffer_position = buffer_start;
+  if( exponent == 0 || exponent == maxed_11_bit_number ){
+    c8 *code;
+    c8 *inf_codes[]  = { "inf", "INF" };
+    c8 *zero_codes[] = { "0"  , "0"   };
+    c8 *nan_codes[]  = { "nan", "NAN" };
+    if( mantissa == 0 && negative ){
+      buffer_position = hl_c8ptr_to_chars( buffer_position, buffer_end, "-" );
     }
-  }else if( exponent == 2 << 12 - 1 ){
-    if( mantissa == 0 ){
-      // +inf, -inf
+    if( exponent == 0 && mantissa == 0 ){
+      code = zero_codes[use_upper_case];
+    }else if( exponent == maxed_11_bit_number && mantissa == 0 ){
+      code = inf_codes[use_upper_case];
     }else{
-      // NaN
+      code = nan_codes[use_upper_case];
     }
+    buffer_position = hl_c8ptr_to_chars( buffer_position, buffer_end, code );
   }else{
-    // normal real
+    // normal subnormal real
+    buffer_position = buffer_start;
   }
 
-  buffer_position = buffer_start;
   return buffer_position;
 }
 
@@ -183,6 +196,7 @@ HL_FUN_DEF c8 *hl_formatted_input_to_chars( c8 *buffer_start, c8 *buffer_end, c8
     case 'G':{
       r64 number = va_arg( vargs, r64 ); 
       scratch_end = hl_r64_to_chars( scratch_start, scratch_end, number, HL_REAL_SHORTEST  , num_type == 'G' );
+
     }break;
   }
   u64 scratch_length  = scratch_end - scratch_start;
