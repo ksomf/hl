@@ -6,9 +6,61 @@
 
 #include <immintrin.h>
 
+static inline u64 hl_u64_base2_digits(  u64 number );
+static        u64 hl_u64_base10_digits( u64 number );
+
 #define _HL_INTRIN
 #endif
 
+#if defined( HL_IMPLEMENTATION )
+static inline u64 hl_u64_base2_digits( u64 number ){
+  u64 base2_digits = sizeof(u64)*HL_BITS_IN_BYTE - __builtin_clzll( number );
+  return base2_digits;
+}
+
+//-- BRUTE FORCE METHOD FOR NOW --//
+static u64 hl_u64_base10_digits( u64 number ){
+  u64 base10_digits = 0; 
+  if( number < 10 ){
+    base10_digits = 1;
+  }else if( number < 100 ){
+    base10_digits = 2;
+  }else if( number < 1000 ){
+    base10_digits = 3;
+  }else if( number < 10000 ){
+    base10_digits = 4;
+  }else if( number < 100000 ){
+    base10_digits = 5;
+  }else if( number < 1000000 ){
+    base10_digits = 6;
+  }else if( number < 10000000 ){
+    base10_digits = 7;
+  }else if( number < 100000000 ){
+    base10_digits = 8;
+  }else if( number < 1000000000 ){
+    base10_digits = 9;
+  }else if( number < 10000000000 ){
+    base10_digits = 10;
+  }else if( number < 100000000000 ){
+    base10_digits = 11;
+  }else if( number < 1000000000000 ){
+    base10_digits = 12;
+  }else if( number < 10000000000000 ){
+    base10_digits = 13;
+  }else if( number < 100000000000000 ){
+    base10_digits = 14;
+  }else if( number < 1000000000000000 ){
+    base10_digits = 15;
+  }else if( number < 10000000000000000 ){
+    base10_digits = 16;
+  }else if( number < 100000000000000000 ){
+    base10_digits = 17;
+  }else if( number < 1000000000000000000 ){
+    base10_digits = 18;
+  }
+  return base10_digits;
+}
+#endif
 /*
 ------------------------------------------------------------------------------
 This software is available under 2 licenses -- choose whichever you prefer 

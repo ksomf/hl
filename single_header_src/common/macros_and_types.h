@@ -22,8 +22,10 @@
 
 #if defined( HL_STATIC )
   #define HL_FUN_DEF static
+  #define HL_INLINE  static inline
 #else
-  #define HL_FUN_DEF HL_EXTERN
+  #define HL_FUN_DEF HL_EXTERN 
+  #define HL_INLINE  inline
 #endif
 
 #if !defined( _fltused ) // USE FLOATING POINT 
@@ -69,10 +71,12 @@
   typedef uint16_t u16;
   typedef uint32_t u32;
   typedef uint64_t u64;
-  HL_STATIC_ASSERT( sizeof( u8  ) == 1 );
-  HL_STATIC_ASSERT( sizeof( u16 ) == 2 );
-  HL_STATIC_ASSERT( sizeof( u32 ) == 4 );
-  HL_STATIC_ASSERT( sizeof( u64 ) == 8 );
+  typedef __uint128_t u128;
+  HL_STATIC_ASSERT( sizeof( u8   ) == 1 );
+  HL_STATIC_ASSERT( sizeof( u16  ) == 2 );
+  HL_STATIC_ASSERT( sizeof( u32  ) == 4 );
+  HL_STATIC_ASSERT( sizeof( u64  ) == 8 );
+  HL_STATIC_ASSERT( sizeof( u128 ) == 16 );
 #endif
 #if !defined( c8 )
   typedef char c8;
@@ -108,8 +112,10 @@
 #define HL_R32_MIN             1.17549435E-38f         //-- MINIMUM REAL32                                   --//
 #define HL_R32_MAX             3.40282347E+38f         //-- MAXIMUM REAL32                                   --//
 
-#define HL_I64_MIN ( -(1l << 63)     )
-#define HL_I64_MAX (  (1l << 64) - 1 )
+#define HL_I64_MIN ( -(1ll << 63)     )
+#define HL_I64_MAX (  (1ll << 63) - 1 )
+
+#define HL_U64_MAX ( 1ull << 63 )
 
 #define HL_BITS_IN_BYTE 8
 

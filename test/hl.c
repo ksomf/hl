@@ -35,8 +35,17 @@ i32 main( i32 argc, c8 **argv ){
   test_print( "%x, %X, %#x, %#X\n"    , 0x12345678, 10, 10, 10 );
   test_print( "%0x, %0X, %0#x, %#0X\n", 0x12345678, 10, 10, 10 );
 
-  test_print( "%f, %F, %e, %E, %g, %G\n", 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 );
-  test_print( "%f, %F, %e, %E, %g, %G\n", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 );
+  test_print( "%f, %F, %e, %E, %g, %G\n",  0.0,  0.0,  0.0,  0.0,  0.0,  0.0 );
+  test_print( "%f, %F, %e, %E, %g, %G\n", -0.0, -0.0, -0.0, -0.0, -0.0, -0.0 );
+  //test_print( "%f, %F, %e, %E, %g, %G\n", 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 );
+  test_print( "%e\n", 1.0 );
+  test_print( "%e\n", 2.0 );
+  r64 f = 1.0;
+  //while( test_print( "%e\n", f ) ){ f*=10.0; }
+
+  //u64 u = 0;
+  //test_print( "%llu\n",  0 );
+  //while( test_print( "%llu\n",  (1<<u) ) ) ++u;
 
   return 0;
 }
