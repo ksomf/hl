@@ -4,9 +4,6 @@
 
 #if !defined( _HL_PRINT )
 
-HL_FUN_DEF i64 hl_snprintf(  c8 *buffer, u64 buffer_length, c8 *fmt, ...           );
-HL_FUN_DEF i64 hl_vsnprintf( c8 *buffer, u64 buffer_length, c8 *fmt, va_list vargs );
-
 typedef enum {
   HL_REAL_FIXED
 , HL_REAL_SCIENTIFIC
@@ -18,6 +15,9 @@ HL_FUN_DEF c8 *hl_u64_to_chars(     c8 *buffer_start, c8 *buffer_end, u64 number
 HL_FUN_DEF c8 *hl_u64_to_chars_hex( c8 *buffer_start, c8 *buffer_end, u64 number, b use_upper_hex );
 HL_FUN_DEF c8 *hl_i64_to_chars(     c8 *buffer_start, c8 *buffer_end, i64 number );
 HL_FUN_DEF c8 *hl_r64_to_chars(     c8 *buffer_start, c8 *buffer_end, r64 number, hl_print_real_types real_format, b use_upper_case );
+
+HL_FUN_DEF i64 hl_snprintf(  c8 *buffer, u64 buffer_length, c8 *fmt, ...           );
+HL_FUN_DEF i64 hl_vsnprintf( c8 *buffer, u64 buffer_length, c8 *fmt, va_list vargs );
 
 #define _HL_PRINT
 #endif 
@@ -40,34 +40,22 @@ typedef enum {
 } hl_print_parse_flags;
 
 HL_FUN_DEF c8 *hl_c8ptr_to_chars( c8 *buffer_start, c8 *buffer_end, c8 *cstr ){
-  u64 str_len = hl_cstr_len( cstr );
-  HL_ASSERT( str_len < buffer_end - buffer_start  );
-  for( u64 buffer_index = 0; buffer_index < str_len; ++buffer_index ){
-     buffer_start[buffer_index] = cstr[buffer_index];
-  }
-  return buffer_start + str_len;
-}
-
-#include <stdio.h>
-HL_FUN_DEF c8 *hl_u64_to_chars( c8 *buffer_start, c8 *buffer_end, u64 number ){
   c8 *buffer_position = 0;
-  u64 base10_digits = hl_u64_base10_digits( number );
-  printf( "%llu:  %llu\n", number, base10_digits );
+  u64 str_len = hl_cstr_len( cstr );
 
-  if( base10_digits < buffer_end - buffer_start ){
-    buffer_position = buffer_start + base10_digits;
-    for( c8 *write_ptr = buffer_position - 1; write_ptr >= buffer_start; --write_ptr ){
-      *write_ptr = (number % 10) + '0';
-      number /= 10;
+  if( str_len < buffer_end - buffer_start  ){
+    buffer_position = buffer_start;
+    while( *cstr ){
+      *buffer_position++ = *cstr++;
     }
   }
+
   return buffer_position;
 }
 
-HL_FUN_DEF c8 *hl_u128_to_chars( c8 *buffer_start, c8 *buffer_end, u128 number ){
+HL_FUN_DEF c8 *hl_u64_to_chars( c8 *buffer_start, c8 *buffer_end, u64 number ){
   c8 *buffer_position = 0;
-  u64 base2_digits  = number > HL_U64_MAX ? 64 + hl_u64_base2_digits( (u64)(number >> 64) ) : hl_u64_base2_digits( (u64)number );
-  u64 base10_digits = (( base2_digits + 1 ) * 1233 >> 12) + 1; //1233 >> 12 is approximately log2(10)^-1
+  u64 base10_digits = hl_u64_base10_digits( number );
 
   if( base10_digits < buffer_end - buffer_start ){
     buffer_position = buffer_start + base10_digits;
@@ -76,6 +64,7 @@ HL_FUN_DEF c8 *hl_u128_to_chars( c8 *buffer_start, c8 *buffer_end, u128 number )
       number /= 10;
     }
   }
+
   return buffer_position;
 }
 
@@ -85,8 +74,7 @@ HL_FUN_DEF c8 *hl_i64_to_chars( c8 *buffer_start, c8 *buffer_end, i64 number ){
     *buffer_start++ = '-';
     number = -number;
   }
-  c8 *buffer_position = hl_u64_to_chars( buffer_start, buffer_end, (u64)number );
-  return buffer_position;
+  return hl_u64_to_chars( buffer_start, buffer_end, (u64)number );
 }
 
 HL_FUN_DEF c8 *hl_u64_to_hex( c8 *buffer_start, c8 *buffer_end, u64 number, b use_upper_hex ){
@@ -132,18 +120,18 @@ HL_FUN_DEF c8 *hl_r64_to_chars( c8 *buffer_start, c8 *buffer_end, r64 number, hl
   b   is_negative = r64_representation.real_bits.sign;
   u64 exponent    = r64_representation.real_bits.exponent;
   u64 mantissa    = r64_representation.real_bits.mantissa;
-  printf( "f2s: s:%i, e:%llu, m:%llu\n", is_negative, exponent, mantissa );
+  //printf( "f2s: s:%i, e:%llu, m:%llu\n", is_negative, exponent, mantissa );
 
   c8 *buffer_position = buffer_start;
+  if( is_negative ){
+    buffer_position = hl_c8ptr_to_chars( buffer_position, buffer_end, "-" );
+  }
   if( exponent == 0 && mantissa == 0 ){
     c8 *zero_format = 0;
     c8 *fixed_zero            = "0.000000";
     c8 *scientific_upper_zero = "0.000000E+00";
     c8 *scientific_lower_zero = "0.000000e+00";
     c8 *shortest_zero         = "0";
-    if( is_negative ){
-      buffer_position = hl_c8ptr_to_chars( buffer_position, buffer_end, "-" );
-    }
     if( real_format == HL_REAL_FIXED ){
       zero_format = fixed_zero;
     }else if( real_format == HL_REAL_SCIENTIFIC ){
@@ -156,19 +144,18 @@ HL_FUN_DEF c8 *hl_r64_to_chars( c8 *buffer_start, c8 *buffer_end, r64 number, hl
       zero_format = shortest_zero;
     }
     buffer_position = hl_c8ptr_to_chars( buffer_position, buffer_end, zero_format );
-  }else if( exponent == 0 || exponent == maxed_11_bit_number ){
-    c8 *code;
-    c8 *inf_codes[]  = { "inf", "INF" };
-    c8 *nan_codes[]  = { "nan", "NAN" };
-    if( exponent == maxed_11_bit_number && mantissa == 0 ){
-      code = inf_codes[use_upper_case];
+  }else if( exponent == maxed_11_bit_number && mantissa == 0 ){
+    if( use_upper_case ){
+      buffer_position = hl_c8ptr_to_chars( buffer_position, buffer_end, "INF" );
     }else{
-      if( is_negative ){
-        buffer_position = hl_c8ptr_to_chars( buffer_position, buffer_end, "-" );
-      }
-      code = nan_codes[use_upper_case];
+      buffer_position = hl_c8ptr_to_chars( buffer_position, buffer_end, "inf" );
     }
-    buffer_position = hl_c8ptr_to_chars( buffer_position, buffer_end, code );
+  }else if( exponent == 0 ){
+    if( use_upper_case ){
+      buffer_position = hl_c8ptr_to_chars( buffer_position, buffer_end, "NAN" );
+    }else{
+      buffer_position = hl_c8ptr_to_chars( buffer_position, buffer_end, "nan" );
+    }
   }else{
     // Normalise exponent and mantissa between normal and subnormal before, as well as removing bias
     u64 normalised_mantissa;
@@ -180,7 +167,7 @@ HL_FUN_DEF c8 *hl_r64_to_chars( c8 *buffer_start, c8 *buffer_end, r64 number, hl
       normalised_mantissa = (1ull << R64_MANTISSA_BITS) | mantissa;
       normalised_exponent = exponent - R64_BIAS - R64_MANTISSA_BITS;
     }
-    printf( "normalised: m: %llu, e: %lli\n", normalised_mantissa, normalised_exponent );
+    //printf( "normalised: m: %llu, e: %lli\n", normalised_mantissa, normalised_exponent );
 
     // Convert to a decimal base with a mantissa of n decimal digits 
     // a * 2^b -> a 5^-b 10^l x 10^(b-l) or a 2^b 10^(l-b) x 10^(b-l)
@@ -192,12 +179,12 @@ HL_FUN_DEF c8 *hl_r64_to_chars( c8 *buffer_start, c8 *buffer_end, r64 number, hl
     u64 m = hl_u64_base2_digits( normalised_mantissa );
     i64 shifted_logs = (normalised_exponent*732923-m*315653);
     i64 l = n + (shifted_logs >> 20);
-    printf( "target_dec:%llu, current_bin:%llu, l:%lli\n", n, m, l );
+    //printf( "target_dec:%llu, current_bin:%llu, l:%lli\n", n, m, l );
 
     u64 target_mantissa = normalised_mantissa;
     i64 powers_of_two   = normalised_exponent;
     i64 powers_of_ten   = l - normalised_exponent;
-    printf( "Modifying by 10^(%+lli) 2^(%+lli)\n", powers_of_ten, powers_of_two );
+    //printf( "Modifying by 10^(%+lli) 2^(%+lli)\n", powers_of_ten, powers_of_two );
     if( powers_of_two <= 0 ){
       while( powers_of_ten > 0 ){
         while( powers_of_two && target_mantissa > HL_U64_MAX / 10 ){
@@ -217,7 +204,7 @@ HL_FUN_DEF c8 *hl_r64_to_chars( c8 *buffer_start, c8 *buffer_end, r64 number, hl
         while( powers_of_ten && target_mantissa > HL_U64_MAX / 1000 ){
           u64 remainder = target_mantissa % 10;
           target_mantissa /= 10;
-          //printf( "Step back: %llu\n", target_mantissa );
+          //printf( "Step back: %llu\n", garget_mantissa );
           ++powers_of_ten;
         }
         target_mantissa <<= 1;
@@ -237,7 +224,7 @@ HL_FUN_DEF c8 *hl_r64_to_chars( c8 *buffer_start, c8 *buffer_end, r64 number, hl
     }
 
     i64 target_exponent = normalised_exponent - l + n - 1;
-    printf( "target m: %llu, e:%lli\n", target_mantissa, target_exponent );
+    //printf( "target m: %llu, e:%lli\n", target_mantissa, target_exponent );
     c8 *buffer_start = buffer_position;
     buffer_position = hl_u64_to_chars( buffer_position+1, buffer_end, target_mantissa );
     buffer_start[0] = buffer_start[1];
@@ -253,122 +240,7 @@ HL_FUN_DEF c8 *hl_r64_to_chars( c8 *buffer_start, c8 *buffer_end, r64 number, hl
       buffer_position[-1] = '0';
       ++buffer_position;
     }
-
-
-    //i64 target_exponent = -(normalised_exponent + l) + target_mantissa_decimal_digits + 1;
-    //printf( "target m: %llu, e:%lli\n", target_mantissa, target_exponent );
-    //c8 *double_start = buffer_position;
-    //buffer_position = hl_u64_to_chars( buffer_position+1, buffer_end, target_mantissa );
-    //double_start[0] = double_start[1];
-    //double_start[1] = '.';
-    //*buffer_position++ = 'e';
-    //if( target_exponent >= 0 ){
-    //  *buffer_position++ = '+';
-    //}
-    //c8 *exponent_start = buffer_position;
-    //buffer_position = hl_i64_to_chars( buffer_position, buffer_end, target_exponent );
-    //if( buffer_position - exponent_start == 1 ){
-    //  buffer_position[0] = buffer_position[-1];
-    //  buffer_position[-1] = '0';
-    //  ++buffer_position;
-    //}
-
-    //// normal or subnormal real
-    //// doi: 10.1145/3192366.3192369
-    //// Step 1: Decode float into mantissa and exponent common between normal and subnormal
-    //u128 normalised_mantissa;
-    //i64  normalised_exponent;
-    //if( exponent == 0 ){ //subnormal
-    //  normalised_mantissa = mantissa;
-    //  normalised_exponent = 1 - R64_BIAS - R64_MANTISSA_BITS;
-    //}else{
-    //  normalised_mantissa = (1ull << R64_MANTISSA_BITS) | mantissa;
-    //  normalised_exponent = exponent - R64_BIAS - R64_MANTISSA_BITS;
-    //}
-    //printf( "normalised: m: %llu, e: %lli\n", (u64)normalised_mantissa, normalised_exponent );
-
-    //// Step 2: Determine interval of information preserving
-    //normalised_exponent = normalised_exponent - 2; // needed to garantee positivity of operations below
-    //u64 lower_offset = mantissa == 0 && exponent > 1 ? 1 : 2;
-    //u128 preserving_mantissa_base2_lower  = 4 * normalised_mantissa - lower_offset;
-    //u128 preserving_mantissa_base2_middle = 4 * normalised_mantissa;
-    //u128 preserving_mantissa_base2_upper  = 4 * normalised_mantissa + 2;
-    //c8 buf21[256] = {};
-    //c8 buf22[256] = {};
-    //c8 buf23[256] = {};
-    //hl_u128_to_chars( buf21, buf21 + HL_ARRAY_COUNT( buf21 ), preserving_mantissa_base2_lower  );
-    //hl_u128_to_chars( buf22, buf22 + HL_ARRAY_COUNT( buf22 ), preserving_mantissa_base2_middle );
-    //hl_u128_to_chars( buf23, buf23 + HL_ARRAY_COUNT( buf23 ), preserving_mantissa_base2_upper  );
-    //printf( "e2,(u,v,w): %lli, (%s,%s,%s)\n", normalised_exponent, buf21, buf22, buf23 );
-
-    //// Step 3: Convert interval and exponenent to decimal representation, but one that fits into memory after dropping no longer required precision
-    //i64 exponent_base10;
-    //u128 preserving_mantissa_base10_lower;
-    //u128 preserving_mantissa_base10_middle;
-    //u128 preserving_mantissa_base10_upper;
-    ////if( normalised_exponent >= 0 ){
-    ////  u64 q = (normalised_exponent * 631306) >> 20; // (1<<20)*log_10(2) = 315652.8
-    ////      q -= 1;
-    ////  u64 k = 125 + ((q * 2434718) >> 20);          // (1<<20)*ln(2)/ln(5) = 2434718
-    ////  printf( "%llu,%llu\n", q, k );
-    ////}else{
-    //{
-    //  exponent_base10 = normalised_exponent;
-    //  u64 q = (-normalised_exponent * 451597) >> 20; // (1<<20)*log(2)/log(5) = 451597
-    //      q -= 1;
-    //  i64 k = ((q * 2434718) >> 20) + 1 - 125;          // (1<<20)*ln(2)/ln(5) = 2434718
-    //  u64 factor = (((-normalised_exponent-q) * 2434718) >> 20) - q;
-    //  printf( "%llu,%lli,%llu\n", q, k, factor );
-    //  preserving_mantissa_base10_lower  = preserving_mantissa_base2_lower  << factor;
-    //  preserving_mantissa_base10_middle = preserving_mantissa_base2_middle << factor;
-    //  preserving_mantissa_base10_upper  = preserving_mantissa_base2_upper  << factor;
-    //}
-    //c8 buf1[256] = {};
-    //c8 buf2[256] = {};
-    //c8 buf3[256] = {};
-    //hl_u128_to_chars( buf1, buf1 + HL_ARRAY_COUNT( buf1 ), preserving_mantissa_base10_lower  );
-    //hl_u128_to_chars( buf2, buf2 + HL_ARRAY_COUNT( buf2 ), preserving_mantissa_base10_middle );
-    //hl_u128_to_chars( buf3, buf3 + HL_ARRAY_COUNT( buf3 ), preserving_mantissa_base10_upper  );
-    //printf( "e10,(a,b,c): %lli, (%s,%s,%s)\n", exponent_base10, buf1, buf2, buf3 );
-
-    ////// Step 4: Compute the shortest representation
-    ////b accept_smaller = false;
-    ////b accept_larger  = false;
-    ////u128 preserving_mantissa_base10_lower_i = preserving_mantissa_base10_lower;
-    ////u128 preserving_mantissa_base10_upper_i = preserving_mantissa_base10_upper - (accept_larger ? 0 : 1);
-    ////u128 preserving_mantissa_base10_lower_ip1 = preserving_mantissa_base10_lower_i / 10;
-    ////u128 preserving_mantissa_base10_upper_ip1 = preserving_mantissa_base10_upper_i / 10;
-    ////u128 lower_bound_remainder_is_zero = preserving_mantissa_base10_lower_i % 10 == 0; 
-    ////b all_lower_bound_zero = true;
-    ////u64 digits = 0;
-    ////while( preserving_mantissa_base10_lower_ip1 < preserving_mantissa_base10_upper_ip1 ){
-    ////  all_lower_bound_zero = all_lower_bound_zero & lower_bound_remainder_is_zero;
-    ////  preserving_mantissa_base10_lower_i = preserving_mantissa_base10_lower_ip1;
-    ////  preserving_mantissa_base10_upper_i = preserving_mantissa_base10_upper_ip1;
-    ////  preserving_mantissa_base10_lower_ip1 = preserving_mantissa_base10_lower_i / 10;
-    ////  preserving_mantissa_base10_upper_ip1 = preserving_mantissa_base10_upper_i / 10;
-    ////  lower_bound_remainder_is_zero = preserving_mantissa_base10_lower_i % 10 == 0; 
-    ////  ++digits;
-    ////}
-    ////if( accept_smaller && all_lower_bound_zero ){
-    ////  while( lower_bound_remainder_is_zero ){
-    ////    preserving_mantissa_base10_lower_i = preserving_mantissa_base10_lower_ip1;
-    ////    preserving_mantissa_base10_upper_i = preserving_mantissa_base10_upper_ip1;
-    ////    preserving_mantissa_base10_lower_ip1 = preserving_mantissa_base10_lower_i / 10;
-    ////    preserving_mantissa_base10_upper_ip1 = preserving_mantissa_base10_upper_i / 10;
-    ////    lower_bound_remainder_is_zero = preserving_mantissa_base10_lower_i % 10 == 0; 
-    ////    ++digits;
-    ////  }
-    ////}
-    ////HL_ASSERT( preserving_mantissa_base10_upper_i < HL_U64_MAX );
-    ////u64  shortest_base10       = (u64)preserving_mantissa_base10_upper_i;
-    ////u64  exponent_modification = digits;
-    ////printf( "e10,e0,d0: %lli,%llu,%llu\n", exponent_base10, digits, shortest_base10 );
-
-    ////// Step 5: Print the number d0 * 10**(e0+e10)
-    ////buffer_position = hl_u64_to_chars( buffer_position, buffer_end, shortest_base10 );
   }
-
   return buffer_position;
 }
 
@@ -472,28 +344,6 @@ HL_FUN_DEF c8 *hl_formatted_input_to_chars( c8 *buffer_start, c8 *buffer_end, c8
   }
 
   return buffer_position;
-}
-HL_FUN_DEF u64 _hl_printFormattedString( c8 *buffer, u64 buffer_length, c8 *string, hl_parsed_print_format* fmt ){
-  if( string == 0 ){
-    string = (c8 *)"null";
-  }
-  u64 written_bytes = 0;
-  u64 str_len = hl_cstr_len( string );
-  u64 padding_width = fmt->width > str_len ? fmt->width - str_len : 0;
-  if( !(fmt->flags & HL_LEFT_JUSTIFY) ){
-    for( u64 pad_byte = 0; pad_byte < padding_width && written_bytes < buffer_length; ++pad_byte, ++written_bytes ){
-      *buffer++ = ' ';
-    }
-  }
-  for( u64 string_byte = 0; string_byte < str_len && written_bytes < buffer_length; ++string_byte, ++written_bytes ){
-    *buffer++ = string[string_byte];
-  }
-  if( fmt->flags & HL_LEFT_JUSTIFY ){
-    for( u64 pad_byte = 0; pad_byte < padding_width && written_bytes < buffer_length; ++pad_byte, ++written_bytes ){
-      *buffer++ = ' ';
-    }
-  }
-  return written_bytes;
 }
 
 HL_FUN_DEF i64 hl_snprintf( c8 *buffer, u64 buffer_length, c8 *fmt, ... ){
