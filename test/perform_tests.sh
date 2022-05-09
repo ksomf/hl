@@ -33,14 +33,10 @@ echo 'CC='${CC}
 SRC_DIR=$(pwd)
 BUILD_DIR='build'
 
-pushd ..
-python3 generate_single_headers.py
-popd
-
 test -d ${BUILD_DIR} || mkdir -p ${BUILD_DIR}
 pushd ${BUILD_DIR} 
 
-${CC} ${CF} ${SRC_DIR}/hl.c -o hl_test ${LF}
+${CC} ${CF} ${SRC_DIR}/test_hl.c -o hl_test ${LF}
 ./hl_test
 
 popd

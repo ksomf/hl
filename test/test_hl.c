@@ -1,5 +1,5 @@
 #define HL_IMPLEMENTATION
-#include "../single_header_src/proto_hl.h"
+#include "../hl.h"
 
 #include <stdio.h>
 
