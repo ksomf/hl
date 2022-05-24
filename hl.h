@@ -449,20 +449,73 @@ HL_FUN_DEF c8 *hl_r64_to_chars( c8 *buffer_start, c8 *buffer_end, r64 number, hl
 		}
 
 		i64 target_exponent = normalised_exponent - l + n - 1;
-		c8 *buffer_start = buffer_position;
-		buffer_position = hl_u64_to_chars( buffer_position+1, buffer_end, target_mantissa );
-		buffer_start[0] = buffer_start[1];
-		buffer_start[1] = '.';
-		*buffer_position++ = 'e';
-		if( target_exponent >= 0 ){
-			*buffer_position++ = '+';
-		}
-		c8 *exponent_start = buffer_position;
-		buffer_position = hl_i64_to_chars( buffer_position, buffer_end, target_exponent );
-		if( buffer_position - exponent_start == 1 ){
-			buffer_position[0] = buffer_position[-1];
-			buffer_position[-1] = '0';
-			++buffer_position;
+
+		// HL_REAL_FIXED, HL_REAL_SCIENTIFIC, HL_REAL_SHORTEST, use_upper_case
+
+		c8 e_code = use_upper_case ? 'E' : 'e';
+
+		if( real_format == HL_REAL_FIXED ){
+			u64 remaining_decimal = 6;
+			b negative_exponent = target_exponent < 0;
+			if( negative_exponent ){
+				*buffer_position++ = '0';
+				*buffer_position++ = '.';
+				++target_exponent;
+				target_mantissa /= 10;
+				while( target_exponent < 0 ){
+					*buffer_position++ = '0';
+					++target_exponent;
+					--remaining_decimal;
+					target_mantissa /= 10;
+				}
+			}
+			c8 *buffer_start = buffer_position + target_exponent + 1;
+			buffer_position = hl_u64_to_chars( buffer_position, buffer_end, target_mantissa );
+			if( !negative_exponent ){
+				if( buffer_start < buffer_position ){
+					c8 last_char;
+					c8 next_char = *buffer_start;
+					*buffer_start++ = '.';
+					while( buffer_start < buffer_position ){
+						last_char = *buffer_start;
+						*buffer_start++ = next_char;
+						next_char = last_char;
+						--remaining_decimal;
+					}
+					*buffer_position++ = next_char;
+					--remaining_decimal;
+					while( remaining_decimal > 0 ){
+						*buffer_position++ = '0';
+						--remaining_decimal;
+					}
+				}else{
+					for(u64 char_index = 6; char_index < target_exponent; ++char_index){
+						*buffer_position++ = '0';
+					}
+					*buffer_position++ = '.';
+					for(u64 char_index = 0; char_index < remaining_decimal; ++char_index){
+						*buffer_position++ = '0';
+					}
+				}
+			}
+		}else if( real_format == HL_REAL_SCIENTIFIC ){
+			c8 *buffer_start = buffer_position;
+			buffer_position = hl_u64_to_chars( buffer_position+1, buffer_end, target_mantissa );
+			buffer_start[0] = buffer_start[1];
+			buffer_start[1] = '.';
+			*buffer_position++ = e_code;
+			if( target_exponent >= 0 ){
+				*buffer_position++ = '+';
+			}
+			c8 *exponent_start = buffer_position;
+			buffer_position = hl_i64_to_chars( buffer_position, buffer_end, target_exponent );
+			if( buffer_position - exponent_start == 1 ){
+				buffer_position[0] = buffer_position[-1];
+				buffer_position[-1] = '0';
+				++buffer_position;
+			}
+		}else if( real_format == HL_REAL_SHORTEST ){
+
 		}
 	}
 	return buffer_position;

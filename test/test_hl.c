@@ -17,7 +17,8 @@ u64 test_print( c8 *fmt, ... ){
 	if( hl_cstr_equ( crt_vsnprintf_result, hl_vsnprintf_result ) ){
 		result = 1;
 	}else{
-		printf( "Mismatch - crt: %s", crt_vsnprintf_result );
+		printf( "Mismatch - fmt: %s", fmt                  );
+		printf( "         - crt: %s", crt_vsnprintf_result );
 		printf( "         - hl : %s",  hl_vsnprintf_result );
 		result = 0;
 	}
@@ -35,9 +36,28 @@ i32 main( i32 argc, c8 **argv ){
 	test_print( "%x, %X, %#x, %#X\n"    , 0x12345678, 10, 10, 10 );
 	test_print( "%0x, %0X, %0#x, %#0X\n", 0x12345678, 10, 10, 10 );
 
-	test_print( "%f, %F, %e, %E, %g, %G\n",  0.0,  0.0,  0.0,  0.0,  0.0,  0.0 );
-	test_print( "%f, %F, %e, %E, %g, %G\n", -0.0, -0.0, -0.0, -0.0, -0.0, -0.0 );
-	//test_print( "%f, %F, %e, %E, %g, %G\n", 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 );
+	test_print( "%f, %F\n",  0.0,  0.0 );
+	test_print( "%e, %E\n",  0.0,  0.0 );
+	test_print( "%g, %G\n",  0.0,  0.0 );
+	test_print( "%f, %F\n", -0.0, -0.0 );
+	test_print( "%e, %E\n", -0.0, -0.0 );
+	test_print( "%g, %G\n", -0.0, -0.0 );
+	test_print( "%f, %F\n", 1.0, 1.0 );
+	test_print( "%e, %E\n", 1.0, 1.0 );
+	test_print( "%g, %G\n", 1.0, 1.0 );
+	test_print( "%f, %F\n", 42.0, 42.0 );
+	test_print( "%e, %E\n", 42.0, 42.0 );
+	test_print( "%g, %G\n", 42.0, 42.0 );
+	test_print( "%f, %F\n", 42.0e14, 42.0e14 );
+	test_print( "%e, %E\n", 42.0e14, 42.0e14 );
+	test_print( "%g, %G\n", 42.0e14, 42.0e14 );
+	test_print( "%f, %F\n", 42.0e33, 42.0e33 );
+	test_print( "%e, %E\n", 42.0e33, 42.0e33 );
+	test_print( "%g, %G\n", 42.0e33, 42.0e33 );
+	test_print( "%f, %F\n", 42.0e-5, 42.0e-5 );
+	test_print( "%e, %E\n", 42.0e-5, 42.0e-5 );
+	test_print( "%g, %G\n", 42.0e-5, 42.0e-5 );
+
 	test_print( "%e\n", 1.0 );
 	test_print( "%e\n", 2.0 );
 	r64 f = 1.0;
