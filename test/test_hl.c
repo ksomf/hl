@@ -48,10 +48,16 @@ i32 main( i32 argc, c8 **argv ){
 	test_print( "%f, %F\n", 42.0, 42.0 );
 	test_print( "%e, %E\n", 42.0, 42.0 );
 	test_print( "%g, %G\n", 42.0, 42.0 );
+	r64 f = 4.2e0;
+	while( f < 1e22 ){
+		test_print( "%f, %F\n", f, f );
+		test_print( "%e, %E\n", f, f );
+		test_print( "%g, %G\n", f, f );
+		f *= 10;
+	}
 	test_print( "%f, %F\n", 42.0e14, 42.0e14 );
 	test_print( "%e, %E\n", 42.0e14, 42.0e14 );
 	test_print( "%g, %G\n", 42.0e14, 42.0e14 );
-	test_print( "%f, %F\n", 42.0e33, 42.0e33 );
 	test_print( "%e, %E\n", 42.0e33, 42.0e33 );
 	test_print( "%g, %G\n", 42.0e33, 42.0e33 );
 	test_print( "%f, %F\n", 42.0e-5, 42.0e-5 );
@@ -60,7 +66,7 @@ i32 main( i32 argc, c8 **argv ){
 
 	test_print( "%e\n", 1.0 );
 	test_print( "%e\n", 2.0 );
-	r64 f = 1.0;
+	f = 1.0;
 	//while( test_print( "%e\n", f ) ){ f*=10.0; }
 
 	//u64 u = 0;
