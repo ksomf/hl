@@ -1,19 +1,8 @@
 //-----------------------------------------------//
 //-- hl.h -- v0.02 -- My Single Header Library --//
 //-----------------------------------------------//
-//-----------------------------------------------//
-//-- USE                                       --//
-//--     Use                                   --//
-//--     #define HL_IMPLEMENTATION             --//
-//--     in exactly ONE file before inclusion  --//
-//-----------------------------------------------//
 
-
-// FILL WITH 0s SO PROGAM ACCESS
-// COMPILER DETECT
-// OS DETECT
-// ADAPT PRINTF TO USE ARENA ALLOCATION AS WELL
-
+//TODO Finnish printf implementation
 #pragma once
 
 //-- CONTEX --//
@@ -130,12 +119,10 @@ typedef uint8_t  u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
-typedef __uint128_t u128;
 HL_STATIC_ASSERT( sizeof( u8   ) == 1 );
 HL_STATIC_ASSERT( sizeof( u16  ) == 2 );
 HL_STATIC_ASSERT( sizeof( u32  ) == 4 );
 HL_STATIC_ASSERT( sizeof( u64  ) == 8 );
-HL_STATIC_ASSERT( sizeof( u128 ) == 16 );
 typedef char c8;
 HL_STATIC_ASSERT( sizeof( c8 ) == 1 );
 typedef float r32;
@@ -228,13 +215,13 @@ typedef struct {
 
 HL_FUNCTION hl_program_memory hl_create_program_memory( u64 base, u64 transient_size, u64 permanent_size );
 
-static inline u64 hl_u64_base2_digits( u64 number ){
+HL_FUNCTION inline u64 hl_u64_base2_digits( u64 number ){
 	u64 base2_digits = sizeof(u64)*HL_BITS_IN_BYTE - __builtin_clzll( number );
 	return base2_digits;
 }
 
 //-- BRUTE FORCE METHOD FOR NOW --//
-static u64 hl_u64_base10_digits( u64 number ){
+HL_FUNCTION u64 hl_u64_base10_digits( u64 number ){
 	u64 base10_digits = 0; 
 	if( number < 10 ){
 		base10_digits = 1;
@@ -380,7 +367,7 @@ HL_FUNCTION c8 *hl_u64_to_hex( c8 *buffer_start, c8 *buffer_end, u64 number, b u
 HL_FUNCTION c8 *hl_r64_to_chars( c8 *buffer_start, c8 *buffer_end, r64 number, hl_print_real_types real_format, b use_upper_case ){
 	u64 maxed_11_bit_number = (1 << 11) - 1;
 
-	hl_ieee754_r64_representation r64_representation = {};
+	hl_ieee754_r64_representation r64_representation = {0};
 	                              r64_representation.real = number;
 	b   is_negative = r64_representation.real_bits.sign;
 	u64 exponent    = r64_representation.real_bits.exponent;
@@ -598,7 +585,7 @@ HL_FUNCTION c8 *hl_r64_to_chars( c8 *buffer_start, c8 *buffer_end, r64 number, h
 HL_FUNCTION c8 *hl_formatted_input_to_chars( c8 *buffer_start, c8 *buffer_end, c8 num_type, hl_parsed_print_format *fmt, va_list vargs ){
 	HL_ASSERT( buffer_start != buffer_end );
 	c8 scratch[512]; //CARRIES ANY 64 BIT OR LOWER STR FORMAT OF A NUMBER
-	c8 lead[8] = {};
+	c8 lead[8] = {0};
 
 	c8 *buffer_position = buffer_start;
 
@@ -715,7 +702,7 @@ HL_FUNCTION i64 hl_vsnprintf( c8 *buffer, u64 buffer_length, c8 *fmt, va_list va
 				fmt += 2;
 			}else{
 				++fmt;
-				hl_parsed_print_format print_fmt = {};
+				hl_parsed_print_format print_fmt = {0};
 				u64 parsed_flags = 0;
 				while( !parsed_flags ){
 					switch( fmt[0] ){
@@ -830,6 +817,8 @@ HL_FUNCTION void *_hl_push_to_memory_pool_safe( hl_memory_pool *pool, u64 size )
 	return result;
 }
 
+//TODO REIMPLEMENT FOR WINDOWS
+#if 0 //defined(HL_OS_MAC) | defined(HL_OS_LINUX)
 #include <sys/mman.h>
 HL_FUNCTION hl_program_memory hl_create_program_memory( u64 base, u64 transient_size, u64 permanent_size ){
 	HL_ASSERT( base == HL_64_BYTE_CEIL( base ) );
@@ -846,4 +835,5 @@ HL_FUNCTION hl_program_memory hl_create_program_memory( u64 base, u64 transient_
 
 	return result;
 }
+#endif
 
