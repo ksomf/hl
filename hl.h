@@ -3,6 +3,7 @@
 //-----------------------------------------------//
 
 //TODO Finnish printf implementation
+
 #pragma once
 
 //-- CONTEX --//
@@ -100,6 +101,7 @@
 
 #define HL_64_BYTE_CEIL( a ) ( (a + 0x3f) & ~0x3f )
 
+//-- TYPES --//
 
 //NOTE(Kim): CRT safe header files
 #include <stdarg.h> // va_arg, ..
@@ -135,7 +137,10 @@ HL_STATIC_ASSERT( sizeof( r64 ) == 8 );
 	#define false 0
 	#if !defined( b )
 		typedef bool b;
-#	endif
+	#endif
+	#if !defined( b32 )
+		typedef i32 b32;
+	#endif
 #endif
 
 #define R64_BIAS               1023
@@ -220,8 +225,8 @@ HL_FUNCTION inline u64 hl_u64_base2_digits( u64 number ){
 	return base2_digits;
 }
 
-//-- BRUTE FORCE METHOD FOR NOW --//
 HL_FUNCTION u64 hl_u64_base10_digits( u64 number ){
+	//TODO(Kim) Non brute force method
 	u64 base10_digits = 0; 
 	if( number < 10 ){
 		base10_digits = 1;
