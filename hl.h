@@ -109,28 +109,42 @@
 #include <stdint.h> // int8_t, ...
 #include <immintrin.h>
 
-typedef int8_t  i8;
+#if !defined( i8 )
+typedef int8_t i8;
+#endif
+#if !defined( i16 )
 typedef int16_t i16;
+#endif
+#if !defined( i32 )
 typedef int32_t i32;
+#endif
+#if !defined( i64 )
 typedef int64_t i64;
-HL_STATIC_ASSERT( sizeof( i8  ) == 1 );
-HL_STATIC_ASSERT( sizeof( i16 ) == 2 );
-HL_STATIC_ASSERT( sizeof( i32 ) == 4 );
-HL_STATIC_ASSERT( sizeof( i64 ) == 8 );
-typedef uint8_t  u8;
+#endif
+#if !defined( u8 )
+typedef uint8_t u8;
+#endif
+#if !defined( u16 )
 typedef uint16_t u16;
+#endif
+#if !defined( u32 )
 typedef uint32_t u32;
+#endif
+#if !defined( u64 )
 typedef uint64_t u64;
-HL_STATIC_ASSERT( sizeof( u8   ) == 1 );
-HL_STATIC_ASSERT( sizeof( u16  ) == 2 );
-HL_STATIC_ASSERT( sizeof( u32  ) == 4 );
-HL_STATIC_ASSERT( sizeof( u64  ) == 8 );
+#endif
+#if !defined( c8 )
 typedef char c8;
-HL_STATIC_ASSERT( sizeof( c8 ) == 1 );
+#endif
+#if !defined( r32 )
 typedef float r32;
-HL_STATIC_ASSERT( sizeof( r32 ) == 4 );
+#endif
+#if !defined( r64 )
 typedef double r64;
-HL_STATIC_ASSERT( sizeof( r64 ) == 8 );
+#endif
+#if !defined( b32 )
+	typedef i32 b32;
+#endif
 #if !defined( bool )
 	typedef _Bool bool;
 	#define true 1
@@ -138,10 +152,19 @@ HL_STATIC_ASSERT( sizeof( r64 ) == 8 );
 	#if !defined( b )
 		typedef bool b;
 	#endif
-	#if !defined( b32 )
-		typedef i32 b32;
-	#endif
 #endif
+
+HL_STATIC_ASSERT( sizeof( i8  )  == 1 );
+HL_STATIC_ASSERT( sizeof( u8   ) == 1 );
+HL_STATIC_ASSERT( sizeof( c8 )   == 1 );
+HL_STATIC_ASSERT( sizeof( i16 )  == 2 );
+HL_STATIC_ASSERT( sizeof( u16  ) == 2 );
+HL_STATIC_ASSERT( sizeof( u32  ) == 4 );
+HL_STATIC_ASSERT( sizeof( i32 )  == 4 );
+HL_STATIC_ASSERT( sizeof( r32 )  == 4 );
+HL_STATIC_ASSERT( sizeof( i64 )  == 8 );
+HL_STATIC_ASSERT( sizeof( u64  ) == 8 );
+HL_STATIC_ASSERT( sizeof( r64 )  == 8 );
 
 #define R64_BIAS               1023
 #define HL_R64_DIGIT_PRECISION 15
@@ -159,6 +182,9 @@ HL_STATIC_ASSERT( R64_MANTISSA_BITS + R64_EXPONENT_BITS + 1 == 8*sizeof(r64) );
 #define HL_R32_EPSILON         1.19209290E-07f
 #define HL_R32_MIN             1.17549435E-38f
 #define HL_R32_MAX             3.40282347E+38f
+#define R32_MANTISSA_BITS      23
+#define R32_EXPONENT_BITS      8
+HL_STATIC_ASSERT( R32_MANTISSA_BITS + R32_EXPONENT_BITS + 1 == 4*sizeof(r64) );
 
 #define HL_I64_MIN ( -(1ll << 63)     )
 #define HL_I64_MAX (  (1ll << 63) - 1 )
