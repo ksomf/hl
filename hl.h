@@ -246,6 +246,11 @@ typedef struct {
 
 HL_FUNCTION hl_program_memory hl_create_program_memory( u64 base, u64 transient_size, u64 permanent_size );
 
+
+#if !defined(__builtin_clzll)
+	#define __builtin_clzll _lzcnt_u64 //TODO Clean up
+#endif
+
 HL_FUNCTION inline u64 hl_u64_base2_digits( u64 number ){
 	u64 base2_digits = sizeof(u64)*HL_BITS_IN_BYTE - __builtin_clzll( number );
 	return base2_digits;
