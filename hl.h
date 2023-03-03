@@ -175,6 +175,9 @@ HL_STATIC_ASSERT( sizeof( r64 )  == 8 );
 #define R64_MANTISSA_BITS      52
 #define R64_EXPONENT_BITS      11
 HL_STATIC_ASSERT( R64_MANTISSA_BITS + R64_EXPONENT_BITS + 1 == 8*sizeof(r64) );
+#if !defined(PI64)
+	#define PI64 3.1415926535897932384626433832795028
+#endif
 
 #define HL_R32_LARGEST_ODD     16777215
 #define HL_R32_DIGIT_PRECISION 6
@@ -184,6 +187,9 @@ HL_STATIC_ASSERT( R64_MANTISSA_BITS + R64_EXPONENT_BITS + 1 == 8*sizeof(r64) );
 #define HL_R32_MAX             3.40282347E+38f
 #define R32_MANTISSA_BITS      23
 #define R32_EXPONENT_BITS      8
+#if !defined(PI64)
+	#define PI64 3.141592653589793f
+#endif
 HL_STATIC_ASSERT( R32_MANTISSA_BITS + R32_EXPONENT_BITS + 1 == 4*sizeof(r64) );
 
 #define HL_I64_MIN ( -(1ll << 63)     )
@@ -830,7 +836,7 @@ HL_FUNCTION i64 hl_vsnprintf( c8 *buffer, u64 buffer_length, c8 *fmt, va_list va
 	}else{
 		write_ptr[0] = 0;
 	}
-	return buffer_length - (i32)(buffer - write_ptr);
+	return buffer_length - (i64)(buffer - write_ptr);
 }
 
 
