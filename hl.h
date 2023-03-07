@@ -95,7 +95,7 @@
 #define HL_PTR2INT( ptr ) (unsigned long long)((char *)ptr - (char *)0)
 #define HL_INT2PTR( n   ) (void *)((char *)0 + n)
 
-#define HL_KILOBYTES( a ) (( 1024LL *              a   ))
+#define HL_KILOBYTES( a ) (( 1024LL *               a   ))
 #define HL_MEGABYTES( a ) (( 1024LL * HL_KILOBYTES( a ) ))
 #define HL_GIGABYTES( a ) (( 1024LL * HL_MEGABYTES( a ) ))
 
@@ -250,7 +250,7 @@ typedef struct {
 	hl_memory_pool permanent;
 } hl_program_memory;
 
-HL_FUNCTION hl_program_memory hl_create_program_memory( u64 base, u64 transient_size, u64 permanent_size );
+//HL_FUNCTION hl_program_memory hl_create_program_memory( u64 base, u64 transient_size, u64 permanent_size );
 
 
 #if !defined(__builtin_clzll)
@@ -840,7 +840,7 @@ HL_FUNCTION i64 hl_vsnprintf( c8 *buffer, u64 buffer_length, c8 *fmt, va_list va
 }
 
 
-HL_FUNCTION void *_hl_push_to_memory_pool( hl_memory_pool *pool, u64 size ){
+HL_FUNCTION void *_hl_memory_pool_push( hl_memory_pool *pool, u64 size ){
 	u64 push_size = HL_64_BYTE_CEIL( size );
 	HL_ASSERT( pool->size - pool->used >= push_size );
 
@@ -849,7 +849,10 @@ HL_FUNCTION void *_hl_push_to_memory_pool( hl_memory_pool *pool, u64 size ){
 	return result;
 }
 
-HL_FUNCTION void *_hl_push_to_memory_pool_safe( hl_memory_pool *pool, u64 size ){
+#define hl_memory_pool_push_type ( pool, type        ) ((type *)_hl_memory_pool_push( (pool), (        sizeof(type)) ))
+#define hl_memory_pool_push_array( pool, type, count ) ((type *)_hl_memory_pool_push( (pool), ((count)*sizeof(type)) ))
+
+HL_FUNCTION void *_hl_memory_pool_push_safe( hl_memory_pool *pool, u64 size ){
 	u64 push_size = HL_64_BYTE_CEIL( size );
 	void *result = 0;
 	if( pool->size - pool->used >= push_size ){
@@ -858,6 +861,9 @@ HL_FUNCTION void *_hl_push_to_memory_pool_safe( hl_memory_pool *pool, u64 size )
 	}
 	return result;
 }
+
+#define hl_memory_pool_push_type_size ( pool, type        ) ((type *)_hl_memory_pool_push_safe( (pool), (        sizeof(type)) ))
+#define hl_memory_pool_push_array_size( pool, type, count ) ((type *)_hl_memory_pool_push_safe( (pool), ((count)*sizeof(type)) ))
 
 //TODO REIMPLEMENT FOR WINDOWS
 #if 0 //defined(HL_OS_MAC) | defined(HL_OS_LINUX)
