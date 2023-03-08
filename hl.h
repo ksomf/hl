@@ -195,6 +195,7 @@ HL_STATIC_ASSERT( R32_MANTISSA_BITS + R32_EXPONENT_BITS + 1 == 4*sizeof(r64) );
 #define HL_I64_MIN ( -(1ll << 63)     )
 #define HL_I64_MAX (  (1ll << 63) - 1 )
 
+#define HL_U32_MAX ( 1ull << 31 )
 #define HL_U64_MAX ( 1ull << 63 )
 
 #define HL_BITS_IN_BYTE 8
@@ -351,7 +352,8 @@ HL_FUNCTION c8 *hl_c8ptr_to_chars( c8 *buffer_start, c8 *buffer_end, c8 *cstr ){
 	c8 *buffer_position = 0;
 	u64 str_len = hl_cstr_len( cstr );
 
-	if( str_len < buffer_end - buffer_start ){
+	u64 buffer_size = buffer_end - buffer_start;
+	if( str_len < buffer_size ){
 		buffer_position = buffer_start;
 		while( *cstr ){
 			*buffer_position++ = *cstr++;
@@ -365,7 +367,8 @@ HL_FUNCTION c8 *hl_u64_to_chars( c8 *buffer_start, c8 *buffer_end, u64 number ){
 	c8 *buffer_position = 0;
 	u64 base10_digits = hl_u64_base10_digits( number );
 
-	if( base10_digits < buffer_end - buffer_start ){
+	u64 buffer_size = buffer_end - buffer_start;
+	if( base10_digits < buffer_size ){
 		buffer_position = buffer_start + base10_digits;
 		for( c8 *write_ptr = buffer_position - 1; write_ptr >= buffer_start; --write_ptr ){
 			*write_ptr = (number % 10) + '0';
@@ -389,13 +392,14 @@ HL_FUNCTION c8 *hl_u64_to_hex( c8 *buffer_start, c8 *buffer_end, u64 number, b u
 	c8 *buffer_position = 0;
 	c8 lower_hex[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'x' };
 	c8 upper_hex[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'X' };
-	HL_ASSERT( HL_ARRAY_COUNT( lower_hex ) == HL_ARRAY_COUNT( upper_hex ) ); //TODO MAKE STATIC
+	HL_STATIC_ASSERT( HL_ARRAY_COUNT( lower_hex ) == HL_ARRAY_COUNT( upper_hex ) ); //TODO MAKE STATIC
 	c8 *hex_code = use_upper_hex ? upper_hex : lower_hex;
   
 	u64 base2_digits  = hl_u64_base2_digits( number );
 	u64 base16_digits = (base2_digits+3) / 4;
 
-	if( base16_digits < buffer_end - buffer_start ){
+	u64 buffer_size = buffer_end - buffer_start;
+	if( base16_digits < buffer_size ){
 		buffer_position = buffer_start + base16_digits;
 		for( c8 *write_ptr = buffer_position - 1; write_ptr >= buffer_start; --write_ptr ){
 			*write_ptr = hex_code[number % 16];
@@ -406,16 +410,16 @@ HL_FUNCTION c8 *hl_u64_to_hex( c8 *buffer_start, c8 *buffer_end, u64 number, b u
 }
 
 
-HL_FUNCTION c8 *hl_r64_to_chars( c8 *buffer_start, c8 *buffer_end, r64 number, hl_print_real_types real_format, b use_upper_case ){
+HL_FUNCTION c8 *hl_r64_to_chars( c8 *received_buffer, c8 *buffer_end, r64 number, hl_print_real_types real_format, b use_upper_case ){
 	u64 maxed_11_bit_number = (1 << 11) - 1;
 
 	hl_ieee754_r64_representation r64_representation = {0};
 	                              r64_representation.real = number;
-	b   is_negative = r64_representation.real_bits.sign;
-	u64 exponent    = r64_representation.real_bits.exponent;
-	u64 mantissa    = r64_representation.real_bits.mantissa;
+	b   is_negative = (b)r64_representation.real_bits.sign;
+	u64 exponent    =    r64_representation.real_bits.exponent;
+	u64 mantissa    =    r64_representation.real_bits.mantissa;
 
-	c8 *buffer_position = buffer_start;
+	c8 *buffer_position = received_buffer;
 	if( is_negative ){
 		buffer_position = hl_c8ptr_to_chars( buffer_position, buffer_end, "-" );
 	}
@@ -550,7 +554,7 @@ HL_FUNCTION c8 *hl_r64_to_chars( c8 *buffer_start, c8 *buffer_end, r64 number, h
 						--remaining_decimal;
 					}
 				}else{
-					for(u64 char_index = 6; char_index < target_exponent; ++char_index){
+					for(i64 char_index = 6; char_index < target_exponent; ++char_index){
 						*buffer_position++ = '0';
 					}
 					*buffer_position++ = '.';
@@ -698,27 +702,27 @@ HL_FUNCTION c8 *hl_formatted_input_to_chars( c8 *buffer_start, c8 *buffer_end, c
 	u64 padding_bytes = fmt->width > scratch_length ? fmt->width - scratch_length : 0;
 	if( !(fmt->flags & HL_LEFT_JUSTIFY) ){
 		c8 padding_char   = fmt->flags & HL_ZERO_PADDING ? '0' : ' ';
-		HL_ASSERT( padding_bytes < buffer_end - buffer_position );
+		HL_ASSERT( padding_bytes < (u64)(buffer_end - buffer_position) );
 		for( u64 padding_index = 0; padding_index < padding_bytes; ++padding_index ){
 			*buffer_position++ = padding_char;
 		}
 	}
 
-	HL_ASSERT( hl_cstr_len( lead ) < buffer_end - buffer_position );
+	HL_ASSERT( hl_cstr_len( lead ) < (u64)(buffer_end - buffer_position) );
 	for( c8 *lead_position = lead; *lead_position; ++lead_position ){
 		*buffer_position++ = *lead_position;
 	}
 
 	if( fmt->flags & HL_LEFT_JUSTIFY ){
 		c8 padding_char   = fmt->flags & HL_ZERO_PADDING ? '0' : ' ';
-		HL_ASSERT( padding_bytes < buffer_end - buffer_position );
+		HL_ASSERT( padding_bytes < (u64)(buffer_end - buffer_position) );
 		for( u64 padding_index = 0; padding_index < padding_bytes; ++padding_index ){
 			*buffer_position++ = padding_char;
 		}
 	}
 
 
-	HL_ASSERT( scratch_length < buffer_end - buffer_position );
+	HL_ASSERT( scratch_length < (u64)(buffer_end - buffer_position) );
 	for( c8 *scratch_position = scratch_start; scratch_position < scratch_end; ++scratch_position ){
 		*buffer_position++ = *scratch_position;
 	}
@@ -840,6 +844,8 @@ HL_FUNCTION i64 hl_vsnprintf( c8 *buffer, u64 buffer_length, c8 *fmt, va_list va
 }
 
 
+#define hl_memory_pool_push_type ( pool, type        ) ((type *)_hl_memory_pool_push( (pool), (        sizeof(type)) ))
+#define hl_memory_pool_push_array( pool, type, count ) ((type *)_hl_memory_pool_push( (pool), ((count)*sizeof(type)) ))
 HL_FUNCTION void *_hl_memory_pool_push( hl_memory_pool *pool, u64 size ){
 	u64 push_size = HL_64_BYTE_CEIL( size );
 	HL_ASSERT( pool->size - pool->used >= push_size );
@@ -849,9 +855,8 @@ HL_FUNCTION void *_hl_memory_pool_push( hl_memory_pool *pool, u64 size ){
 	return result;
 }
 
-#define hl_memory_pool_push_type ( pool, type        ) ((type *)_hl_memory_pool_push( (pool), (        sizeof(type)) ))
-#define hl_memory_pool_push_array( pool, type, count ) ((type *)_hl_memory_pool_push( (pool), ((count)*sizeof(type)) ))
-
+#define hl_memory_pool_push_type_safe ( pool, type        ) ((type *)_hl_memory_pool_push_safe( (pool), (        sizeof(type)) ))
+#define hl_memory_pool_push_array_safe( pool, type, count ) ((type *)_hl_memory_pool_push_safe( (pool), ((count)*sizeof(type)) ))
 HL_FUNCTION void *_hl_memory_pool_push_safe( hl_memory_pool *pool, u64 size ){
 	u64 push_size = HL_64_BYTE_CEIL( size );
 	void *result = 0;
@@ -861,9 +866,6 @@ HL_FUNCTION void *_hl_memory_pool_push_safe( hl_memory_pool *pool, u64 size ){
 	}
 	return result;
 }
-
-#define hl_memory_pool_push_type_size ( pool, type        ) ((type *)_hl_memory_pool_push_safe( (pool), (        sizeof(type)) ))
-#define hl_memory_pool_push_array_size( pool, type, count ) ((type *)_hl_memory_pool_push_safe( (pool), ((count)*sizeof(type)) ))
 
 //TODO REIMPLEMENT FOR WINDOWS
 #if 0 //defined(HL_OS_MAC) | defined(HL_OS_LINUX)
