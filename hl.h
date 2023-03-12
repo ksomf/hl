@@ -215,6 +215,8 @@ typedef union {
 HL_FUNCTION inline u64 hl_u64_base2_digits(  u64 number );
 HL_FUNCTION        u64 hl_u64_base10_digits( u64 number );
 
+HL_FUNCTION inline r32 hl_r32_abs( r32 number );
+
 
 HL_FUNCTION u64  hl_cstr_len( c8 *str );
 HL_FUNCTION u64  hl_cstr_equ( c8 *str1, c8 *str2 );
@@ -306,6 +308,13 @@ HL_FUNCTION u64 hl_u64_base10_digits( u64 number ){
 	return base10_digits;
 }
 
+HL_FUNCTION inline r32 hl_r32_abs( r32 number ){
+	r32 res = number;
+	if( number < 0 ){
+		res = -res;
+	}
+	return res;
+}
 
 HL_FUNCTION u64 hl_cstr_len( c8 * str ){
 	u64 result = 0;
