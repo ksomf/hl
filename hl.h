@@ -33,7 +33,7 @@
 	#error Unsupported OS
 #endif
 
-#if defined( __clang__ ) // NOTE(Kim): _MSC_VER defined on windows clang
+#if defined( __clang__ ) // NOTE(KIM): _MSC_VER defined on windows clang
 	#define HL_COMPILER_CLANG 1
 	#define HL_COMPILER_CL    0
 	#define HL_COMPILER_GCC   0
@@ -63,7 +63,7 @@
 #define HL_LOCAL    static
 #define HL_FUNCTION static
 
-#if !defined( _fltused ) //Note(Kim): Enable floating point without CRT
+#if !defined( _fltused ) //Note(KIM): Enable floating point without CRT
 	#if HL_OS_WINDOWS
 		HL_EXTERN int _fltused = 0;
 	#else
@@ -81,11 +81,7 @@
 #define HL_STATIC_ASSERT( expression ) _HL_STATIC_ASSERT1( expression, __LINE__ )
 
 #if !defined( HL_BREAK )
-	#if HL_OS_WINDOWS //TODO: Test if still necessary on windows
-		#define HL_BREAK *(int *)0 = 0;
-	#else
-		#define HL_BREAK *(volatile int *)0 = 0;
-	#endif
+	#define HL_BREAK *(volatile int *)0 = 0;
 #endif
 #if !defined( HL_ASSERT )
 	#define HL_ASSERT( exp ) if( !(exp) ){ HL_BREAK }
@@ -103,7 +99,7 @@
 
 //-- TYPES --//
 
-//NOTE(Kim): CRT safe header files
+//NOTE(KIM): CRT safe header files
 #include <stdarg.h> // va_arg, ..
 #include <stddef.h> // size_t
 #include <stdint.h> // int8_t, ...
@@ -245,16 +241,8 @@ typedef struct {
 	u64 used;
 } hl_memory_pool;
 
-HL_FUNCTION void *_hl_push_to_memory_pool		 ( hl_memory_pool *pool, u64 size );
-HL_FUNCTION void *_hl_push_to_memory_pool_safe( hl_memory_pool *pool, u64 size );
-
-typedef struct {
-	hl_memory_pool transient;
-	hl_memory_pool permanent;
-} hl_program_memory;
-
-//HL_FUNCTION hl_program_memory hl_create_program_memory( u64 base, u64 transient_size, u64 permanent_size );
-
+HL_FUNCTION void *_hl_memory_pool_push     ( hl_memory_pool *pool, u64 size );
+HL_FUNCTION void *_hl_memory_pool_push_safe( hl_memory_pool *pool, u64 size );
 
 #if !defined(__builtin_clzll)
 	#define __builtin_clzll _lzcnt_u64 //TODO Clean up
@@ -266,7 +254,7 @@ HL_FUNCTION inline u64 hl_u64_base2_digits( u64 number ){
 }
 
 HL_FUNCTION u64 hl_u64_base10_digits( u64 number ){
-	//TODO(Kim) Non brute force method
+	//TODO(KIM) Non brute force method
 	u64 base10_digits = 0; 
 	if( number < 10 ){
 		base10_digits = 1;
