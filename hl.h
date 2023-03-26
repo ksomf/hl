@@ -104,6 +104,7 @@
 #include <stddef.h> // size_t
 #include <stdint.h> // int8_t, ...
 #include <immintrin.h>
+#include <x86intrin.h>
 
 #if !defined( i8 )
 typedef int8_t i8;
@@ -213,7 +214,6 @@ HL_FUNCTION        u64 hl_u64_base10_digits( u64 number );
 
 HL_FUNCTION inline r32 hl_r32_abs( r32 number );
 
-
 HL_FUNCTION u64  hl_cstr_len( c8 *str );
 HL_FUNCTION u64  hl_cstr_equ( c8 *str1, c8 *str2 );
 HL_FUNCTION bool hl_cstr_startswith( c8 *start, c8 *str );
@@ -244,12 +244,8 @@ typedef struct {
 HL_FUNCTION void *_hl_memory_pool_push     ( hl_memory_pool *pool, u64 size );
 HL_FUNCTION void *_hl_memory_pool_push_safe( hl_memory_pool *pool, u64 size );
 
-#if !defined(__builtin_clzll)
-	#define __builtin_clzll _lzcnt_u64 //TODO Clean up
-#endif
-
 HL_FUNCTION inline u64 hl_u64_base2_digits( u64 number ){
-	u64 base2_digits = sizeof(u64)*HL_BITS_IN_BYTE - __builtin_clzll( number );
+	u64 base2_digits = sizeof(u64)*HL_BITS_IN_BYTE - __builtin_clz(number);
 	return base2_digits;
 }
 
