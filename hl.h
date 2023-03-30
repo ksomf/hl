@@ -50,6 +50,13 @@
 #endif
 
 
+//NOTE(KIM): CRT safe header files
+#include <stdarg.h> // va_arg, ..
+#include <stddef.h> // size_t
+#include <stdint.h> // int8_t, ...
+#include <immintrin.h>
+#include <x86intrin.h>
+
 //-- MACROS --//
 #if defined( __cplusplus )
 	#define HL_EXTERN extern "C"
@@ -64,7 +71,7 @@
 #define HL_FUNCTION static
 
 #if !defined( _fltused ) //Note(KIM): Enable floating point without CRT
-	#if HL_OS_WINDOWS
+	#if HL_OS_WINDOWS == 1
 		HL_EXTERN int _fltused = 0;
 	#else
 		HL_EXTERN int _fltused;
@@ -84,7 +91,18 @@
 	#define HL_BREAK *(volatile int *)0 = 0;
 #endif
 #if !defined( HL_ASSERT )
-	#define HL_ASSERT( exp ) if( !(exp) ){ HL_BREAK }
+	#if HL_OS_WINDOWS == 1
+		#define HL_WRITE_DEBUG_STR( str ) ( { OutputDebugStringA(str); } )
+	#else
+		#define HL_WRITE_DEBUG_STR( str ) ( { char write_str[] = str; write( 1, write_str, sizeof( write_str ) ); } )
+	#endif
+	#include <unistd.h>
+	#define HL_DEBUG_STR( str ) HL_WRITE_DEBUG_STR( "[DEBUG] " str	"\n")
+	#define HL_ERROR_STR( str ) HL_WRITE_DEBUG_STR( "[ERROR] " str	"\n")
+	#define _HL_ASSERT3( exp, loc ) if( !(exp) ){ HL_DEBUG_STR(loc); HL_BREAK }
+	#define _HL_ASSERT2( exp, file, line ) _HL_ASSERT3( exp, file ":" #line )
+	#define _HL_ASSERT1( exp, file, line ) _HL_ASSERT2( exp, file, line )
+	#define HL_ASSERT( exp ) _HL_ASSERT1( exp, __FILE__, __LINE__ )
 #endif
 	
 #define HL_ARRAY_COUNT( arr ) sizeof(arr) / sizeof(*(arr))
@@ -98,13 +116,6 @@
 #define HL_64_BYTE_CEIL( a ) ( (a + 0x3f) & ~0x3f )
 
 //-- TYPES --//
-
-//NOTE(KIM): CRT safe header files
-#include <stdarg.h> // va_arg, ..
-#include <stddef.h> // size_t
-#include <stdint.h> // int8_t, ...
-#include <immintrin.h>
-#include <x86intrin.h>
 
 #if !defined( i8 )
 typedef int8_t i8;
