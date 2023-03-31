@@ -55,7 +55,9 @@
 #include <stddef.h> // size_t
 #include <stdint.h> // int8_t, ...
 #include <immintrin.h>
-#include <x86intrin.h>
+#if HL_OS_WINDOWS == 0
+	#include <x86intrin.h>
+#endif
 
 //-- MACROS --//
 #if defined( __cplusplus )
@@ -93,14 +95,15 @@
 #if !defined( HL_ASSERT )
 	#if HL_OS_WINDOWS == 1
 		#define HL_WRITE_DEBUG_STR( str ) ( { OutputDebugStringA(str); } )
+		#define _HL_ASSERT3( exp, loc ) do { if( !(exp) ){ HL_BREAK } } while(0)
 	#else
+		#include <unistd.h>
 		#define HL_WRITE_DEBUG_STR( str ) ( { char write_str[] = str; write( 1, write_str, sizeof( write_str ) ); } )
+		#define _HL_ASSERT3( exp, loc ) do { if( !(exp) ){ HL_DEBUG_STR(loc); HL_BREAK } } while(0)
 	#endif
-	#include <unistd.h>
-	#define HL_DEBUG_STR( str ) HL_WRITE_DEBUG_STR( "[DEBUG] " str	"\n")
-	#define HL_ERROR_STR( str ) HL_WRITE_DEBUG_STR( "[ERROR] " str	"\n")
-	#define _HL_ASSERT3( exp, loc ) if( !(exp) ){ HL_DEBUG_STR(loc); HL_BREAK }
-	#define _HL_ASSERT2( exp, file, line ) _HL_ASSERT3( exp, file ":" #line )
+	#define HL_DEBUG_STR( str ) HL_WRITE_DEBUG_STR( "[DEBUG] " str )
+	#define HL_ERROR_STR( str ) HL_WRITE_DEBUG_STR( "[ERROR] " str )
+	#define _HL_ASSERT2( exp, file, line ) _HL_ASSERT3( exp, file ":" #line "\n")
 	#define _HL_ASSERT1( exp, file, line ) _HL_ASSERT2( exp, file, line )
 	#define HL_ASSERT( exp ) _HL_ASSERT1( exp, __FILE__, __LINE__ )
 #endif
@@ -255,8 +258,17 @@ typedef struct {
 HL_FUNCTION void *_hl_memory_pool_push     ( hl_memory_pool *pool, u64 size );
 HL_FUNCTION void *_hl_memory_pool_push_safe( hl_memory_pool *pool, u64 size );
 
+HL_FUNCTION inline u64 hl_clz( u64 number ){
+	u64 result;
+#if HL_OS_WINDOWS == 1
+	_BitScanForward( &result, number );
+#else
+	result = __builtin_clz( number );
+#endif
+	return result;
+}
 HL_FUNCTION inline u64 hl_u64_base2_digits( u64 number ){
-	u64 base2_digits = sizeof(u64)*HL_BITS_IN_BYTE - __builtin_clz(number);
+	u64 base2_digits = sizeof(u64)*HL_BITS_IN_BYTE - hl_clz(number);
 	return base2_digits;
 }
 
